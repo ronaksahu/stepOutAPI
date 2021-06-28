@@ -118,6 +118,27 @@ var authService = {
             console.log(error);
             return;
         }
+    },
+    sendOTP:  function(req) {
+        try {
+            const phoneNo = req.body.phoneNo;
+            const otp = utils.generateOTP(phoneNo);
+            console.log(otp)
+            return 'OTP SENT';
+        } catch(error) {
+            console.log(error)
+            return;
+        }
+    },
+    verifyOtp:  function(req) {
+        try {
+            const { hash, phoneNo, otp } = req.body;
+            const otpVerified = utils.verifyOtp(phoneNo, hash, otp);
+            return {otpVerified};
+        } catch(error) {
+            console.log(error)
+            return;
+        }
     }
 }
 

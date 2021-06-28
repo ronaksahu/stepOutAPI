@@ -38,6 +38,24 @@ var authController = {
             console.log(error);
             res.sendStatus(500)
         }
+    },
+    sendOTP:  function(req, res) {
+        try {
+            var result = authService.sendOTP(req);
+            res.status(200).json(result)
+        } catch(error) {
+            console.log(error);
+            res.sendStatus(500)
+        }
+    },
+    verifyOtp:  function(req, res) {
+        try {
+            var result = authService.verifyOtp(req);
+            res.status(200).json(result)
+        } catch(error) {
+            console.log(error);
+            res.sendStatus(500)
+        }
     }
 }
 

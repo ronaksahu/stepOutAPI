@@ -1,5 +1,7 @@
 const jwt = require('jsonwebtoken');
 const config = require('../config.json')
+const otpGenerator = require("otp-generator");
+const crypto       = require("crypto");
 
 const utils = {
 
@@ -52,6 +54,33 @@ const utils = {
             if (unit=="N") { dist = dist * 0.8684 }
             return dist;
         }
+    },
+    generateOTP: function(phoneNo) {
+        const otp      = otpGenerator.generate(6, {alphabets: false, upperCase: false, specialChars: false});
+        console.log(otp)
+        const ttl      = 60 * 1000; //5 Minutes in miliseconds
+        const expires  = Date.now() + ttl; //timestamp to 5 minutes in the future
+        const data     = `${phoneNo}.${otp}.${expires}`; // phone.otp.expiry_timestamp
+        const hash     = crypto.createHmac("sha256", config.otpKey).update(data).digest("hex"); // creating SHA256 hash of the data
+        const fullHash = `${hash}.${expires}`; // Hash.expires, format to send to the user
+        // you have to implement the function to send SMS yourself. For demo purpose. let's assume it's called sendSMS
+        //sendSMS(phone,`Your OTP is ${otp}. it will expire in 5 minutes`);
+        return fullHash;
+    },
+    verifyOtp : function(phone, hash, otp) {
+          // Seperate Hash value and expires from the hash returned from the user
+        let [hashValue,expires] = hash.split(".");
+        // Check if expiry time has passed
+        let now = Date.now();
+        if(now>parseInt(expires)) return false;
+        // Calculate new hash with the same key and the same algorithm
+        let data  = `${phone}.${otp}.${expires}`;
+        let newCalculatedHash = crypto.createHmac("sha256",config.otpKey).update(data).digest("hex");
+        // Match the hashes
+        if(newCalculatedHash === hashValue){
+            return true;
+        } 
+        return false;
     }
 
 }

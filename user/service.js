@@ -3,6 +3,8 @@ const ServiceModel = require('../model/services')
 const Cart = require('../model/cart')
 const commonUtil = require('../utility/common')
 const Profile = require('../model/profile')
+const Review = require('../model/reviews')
+const Order = require('../model/order')
 
 const userService = {
     getService: async function(req) {
@@ -187,6 +189,119 @@ const userService = {
 
         } catch(error) {
             console.log(error);
+            return;
+        }
+    },
+    getPreOrder: async function(req) {
+        try {
+            const user = req.user;
+
+            const updatedCart = await Cart.find({userId: user.id}).populate({
+                path: "serviceId",
+                select: "title name description image"
+            }).select({ "userId": 0 }).lean()
+
+            const formatCart = commonUtil.formatCart(updatedCart)
+
+            return formatCart;
+
+        } catch(error) {
+            console.log(error);
+            return;
+        }
+    },
+    placeOrder: async function(req) {
+        try {
+
+            const user = req.user;
+            const updatedCart = await Cart.find({userId: user.id}).populate({
+                path: "serviceId",
+                select: "title name description image"
+            }).select({ "userId": 0 }).lean()
+
+            const cartItems = commonUtil.formatCart(updatedCart)
+            var orders = []
+            cartItems.cartList.forEach(items => {
+                var order = {}
+                order.userId = user.id
+                order.serviceId = items.serviceId
+                order.quantity = items.quantity
+                order.totalAmount = items.totalAmount
+                order.timeSlot = items.timeSlot
+                order.price = items.amount
+                order.orderStatus = 'Confirm'
+                order.transactionStatus = 'Success'
+                var orderModel = new Order(order)
+                orders.push(orderModel)
+            })
+            var orderList = await Order.insertMany(orders)
+
+            var cartEmpty = await Cart.deleteMany({ userId: user.id })
+
+            
+            return commonUtil.formatOrder(orderList);
+        } catch(error) {
+            console.log(error)
+            return;
+        }
+    },
+    myOrders: async function(req) {
+        try {
+            
+            const user = req.user;
+
+            const orderList = await Order.find({userId: user.id}).populate({
+                path: "serviceId",
+                select: "title name description image"
+            }).select({ "userId": 0 }).lean()
+
+            return commonUtil.formatMyOrders(orderList);
+
+        } catch(error) {
+            console.log(error)
+            return;
+        }
+    },
+    postReview: async function(req) {
+        try {
+            
+            const { serviceId, rating, review } = req.body;
+            const user = req.user;
+
+            const userExist = await User.exists({email: user.email})
+            if (!userExist) return 'User does not exist';
+
+            const userVerified = await Order.exists({ userId: user.id, serviceId: serviceId })
+
+            if(!userVerified) return 'User not ordered this Service'
+
+            const reviewModel = Review({ userId: user.id, serviceId, rating, review })
+
+            const postReview = await reviewModel.save()
+
+            return postReview;
+
+        } catch (error) {
+            console.log(error)
+            return;
+        }
+    },
+    getReview: async function(req) {
+        try {
+            const user = req.user;
+
+            const userExist = await User.exists({email: user.email})
+            if (!userExist) return 'User does not exist';
+
+            const reviewList = await Review.find({ userId: user.id }).populate({
+                path: "serviceId",
+                select: "title name description image"
+            }).select({ "userId": 0 }).lean()
+
+            return commonUtil.reviewFormatData(reviewList)
+
+        } catch (error) {
+            console.log(error)
             return;
         }
     }

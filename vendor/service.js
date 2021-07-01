@@ -1,6 +1,8 @@
 const ServiceModel = require('../model/services')
 const Vendor = require('../model/vendor')
 const Reviews = require('../model/reviews')
+const Order = require('../model/order')
+const commonUtil = require('../utility/common')
 
 var vendorServices = {
     addService: async function(req) {
@@ -132,13 +134,55 @@ var vendorServices = {
 
             if(!vendorExist) return 'Vendor does not exist';
 
-            const serviceData = await ServiceModel.exists({vendorId: vendor.id, _id: serviceId})
+            var filter = {}
+            if(serviceId) filter.serviceId = serviceId
 
-            if(!serviceData) return 'service does not exist';
+            const reviews = await Reviews.find(filter).populate({
+                path: "serviceId",
+                select: "vendorId title name description image",
+                match: {vendorId: {$eq: vendor.id}}
+            }).lean()
+            return commonUtil.vendorReviewFormat(reviews);
+            
+        } catch(error) {
+            console.log(error)
+            return;
+        }
+    },
+    getOrders: async function(req) {
+        try {
+            const vendor = req.user;
 
-            const reviews = await Reviews.find({serviceId})
+            const vendorExist = await Vendor.exists({email: vendor.email});
 
-            return reviews;
+            if(!vendorExist) return 'Vendor does not exist';
+
+            const orders = await Order.find({}).populate({
+                path: "serviceId",
+                select: "vendorId title name description image",
+                match: {vendorId: {$eq: vendor.id}}
+            })
+            return commonUtil.vendorOrderFormat(orders);
+        } catch(error) {
+            console.log(error)
+            return;
+        }
+    },
+    updateOrderStatus: async function(req) {
+        try {
+            const { orderId, orderStatus } = req.body;
+            const vendor = req.user
+            const vendorExist = await Vendor.exists({email: vendor.email});
+
+            if(!vendorExist) return 'Vendor does not exist';
+
+            const orderDB = await Order.findOne({_id: orderId});
+            if(orderDB) {
+                orderDB.orderStatus = orderStatus;
+                await orderDB.save()
+            }
+            return orderDB;
+
         } catch(error) {
             console.log(error)
             return;

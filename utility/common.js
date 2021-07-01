@@ -70,11 +70,13 @@ var commonUtil = {
         return formatMyOrderList;
     },
     reviewFormatData: function(reviewList) {
-        var reviewFormatList = []
+        var reviews = []
+        var avgReview = 0;
         reviewList.forEach(item => {
             const review = {}
             review._id = item._id;
             review.rating = item.rating;
+            avgReview += item.rating
             review.review = item.review;
             review.serviceId = item.serviceId._id;
             review.title = item.serviceId.title;
@@ -82,6 +84,46 @@ var commonUtil = {
             review.description = item.serviceId.description;
             review.createdAt = item.createdAt;
             review.updatedAt = item.updatedAt;
+            reviews.push(review)
+        })
+
+        return {reviews, avgReview: avgReview / reviewList.length};
+    },
+    vendorOrderFormat: function(orderList) {
+        var formatOrderList = []
+        orderList.forEach(item => {
+            var order = {}
+            order._id = item._id;
+            order.timeSlot = item.timeSlot;
+            order.quantity = item.quantity;
+            order.price = item.price;
+            order.orderStatus = item.orderStatus;
+            order.transactionStatus = item.transactionStatus;
+            order.createdAt = item.createdAt;
+            order.updatedAt = item.updatedAt;
+            order.serviceId = item.serviceId._id;
+            order.title = item.serviceId.title;
+            order.name = item.serviceId.name;
+            order.description = item.serviceId.description;
+            order.image = item.serviceId.image;
+            formatOrderList.push(order)
+        })
+        return formatOrderList
+    },
+    vendorReviewFormat: function(reviewList) {
+        var reviewFormatList = []
+        reviewList.forEach(item => {
+            var review = {}
+            review._id = item._id
+            review.rating = item.rating
+            review.review = item.review
+            review.createdAt = item.createdAt
+            review.updatedAt = item.updatedAt
+            review.serviceId = item.serviceId._id
+            review.title = item.serviceId.title
+            review.name = item.serviceId.name
+            review.description = item.serviceId.description
+            review.image = item.serviceId.image
             reviewFormatList.push(review)
         })
         return reviewFormatList;

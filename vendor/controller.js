@@ -36,6 +36,24 @@ var vendorController = {
             console.log(error);
             res.sendStatus(500)
         }
+    },
+    getOrder: async function(req, res) {
+        try {
+            var result = await vendorServices.getOrders(req);
+            res.status(200).json(result)
+        } catch(error) {
+            console.log(error)
+            res.sendStatus(500)
+        }
+    },
+    updateOrderStatus: async function(req, res) {
+        try {
+            var result = await vendorServices.updateOrderStatus(req);
+            res.status(200).json(result)
+        } catch(error) {
+            console.log(error)
+            res.sendStatus(500)
+        }
     }
 }
 

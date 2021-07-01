@@ -289,11 +289,15 @@ const userService = {
     getReview: async function(req) {
         try {
             const user = req.user;
+            const serviceId = req.query.serviceId;
 
             const userExist = await User.exists({email: user.email})
             if (!userExist) return 'User does not exist';
 
-            const reviewList = await Review.find({ userId: user.id }).populate({
+            var filter = {}
+            if(serviceId) filter.serviceId = serviceId
+
+            const reviewList = await Review.find(filter).populate({
                 path: "serviceId",
                 select: "title name description image"
             }).select({ "userId": 0 }).lean()

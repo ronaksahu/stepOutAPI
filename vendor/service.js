@@ -13,7 +13,7 @@ var vendorServices = {
 
                 timeSlots.map(slots => {
                     var date = slots.date.split('/')
-                    slots.date = new Date(date[2], date[1], date[0])
+                    slots.date = new Date(date[2], date[1] - 1, date[0])
                     return slots
                 })
             }
@@ -49,7 +49,7 @@ var vendorServices = {
     updateService: async function(req) {
         try {
             
-            const { title, name, description, image, activity_type, price, serviceId, status } = req.body;
+            var { title, name, description, image, activity_type, prices, serviceId, status, timeBased, timeSlots } = req.body;
 
             const vendor = req.user;
 
@@ -57,14 +57,38 @@ var vendorServices = {
 
             if(!vendorExist) return 'Vendor does not exist';
 
-            const serviceExist = await ServiceModel.exists({vendorId: vendor.id, _id: serviceId})
+            const service = await ServiceModel.findOne({vendorId: vendor.id, _id: serviceId})
 
-            if(!serviceExist) return 'service does not exist';
+            if(!service) return 'service does not exist';
 
-            const updateService = await ServiceModel.updateOne({ vendorId: vendor.id, _id: serviceId },{ title, name, description, image, activity_type, price, status} )
-            return {
-                title, name, description, image, activity_type, price, serviceId
+            if(timeBased) {
+                timeSlots = req.body.timeSlots;
+
+                timeSlots.map(slots => {
+                    var date = slots.date.split('/')
+                    slots.date = new Date(date[2], date[1], date[0])
+                    return slots
+                })
+            } else {
+                timeSlots = []
             }
+
+            service.title = title;
+            service.name = name;
+            service.description = description;
+            service.image = image;
+            service.activity_type = activity_type;
+            service.prices = prices;
+            service.status = status
+            service.timeBased = timeBased;
+            service.timeSlots = timeBased ? timeSlots : []
+
+            const userData = await service.save()
+
+
+            //const updateService = await ServiceModel.updateOne({ vendorId: vendor.id, _id: serviceId },{ title, name, description, image, activity_type, prices, status, timeBased, timeSlots } )
+            return  userData;
+            
 
         } catch(error) {
             console.log(error);

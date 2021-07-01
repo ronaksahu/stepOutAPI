@@ -20,8 +20,8 @@ const priceSchema = mongoose.Schema({
     prices: [{
         title: String,
         amount: Number
-    }]
-})
+    }, { _id : false }]
+}, { _id : false })
 
 const ServiceSchema = new Schema({
     title: {

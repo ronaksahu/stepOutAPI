@@ -12,15 +12,18 @@ const CartSchema = new Schema({
         ref: 'Services',
         required: true
     },
-    category: {
-        type: Schema.Types.ObjectId
+    category: String,
+    timeSlot: {
+        date: Date,
+        from: String,
+        to: String
     },
-    price: {
-        type: Schema.Types.ObjectId
-    },
+    priceType: String,
+    amount: Number,
     quantity: {
         type: Number
-    }
+    },
+    totalAmount: Number
 });
 
 module.exports = mongoose.model('Cart', CartSchema)

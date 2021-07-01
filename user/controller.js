@@ -18,6 +18,15 @@ const userController = {
             console.log(error)
             res.sendStatus(500)
         }
+    },
+    getCart: async function(req, res) {
+        try {
+            var result = await userService.getCart(req);
+            res.status(200).json(result)
+        } catch(error) {
+            console.log(error)
+            res.sendStatus(500)
+        }
     }
 }
 

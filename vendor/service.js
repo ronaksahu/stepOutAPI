@@ -13,7 +13,7 @@ var vendorServices = {
 
                 timeSlots.map(slots => {
                     var date = slots.date.split('/')
-                    slots.date = new Date(date[2], date[1] - 1, date[0])
+                    slots.date = new Date(date[2], date[1] - 1, date[0] - 1)
                     return slots
                 })
             }
@@ -66,7 +66,7 @@ var vendorServices = {
 
                 timeSlots.map(slots => {
                     var date = slots.date.split('/')
-                    slots.date = new Date(date[2], date[1], date[0])
+                    slots.date = new Date(date[2], date[1] - 1, date[0] - 1)
                     return slots
                 })
             } else {

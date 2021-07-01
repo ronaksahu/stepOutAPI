@@ -1,6 +1,8 @@
 const User = require('../model/user')
 const ServiceModel = require('../model/services')
 const Cart = require('../model/cart')
+const commonUtil = require('../utility/common')
+
 const userService = {
     getService: async function(req) {
         try {
@@ -38,7 +40,7 @@ const userService = {
             const { serviceId, categoryType, priceType, quantity, slot } = req.body;
 
             var date = slot.date.split('/')
-            slot.date = new Date(date[2], date[1] - 1, date[0])
+            slot.date = new Date(date[2], date[1] - 1, date[0] )
 
             const user = req.user;
 
@@ -59,7 +61,7 @@ const userService = {
             })
             var slotAvailable = false;
             service.timeSlots.forEach(timeSlot => {
-                if(Number(timeSlot.date) == Number(slot.date)) {
+                 if(Number(timeSlot.date) == Number(slot.date)) {
                     timeSlot.timeSlots.forEach(time => {
                         if(time.from == slot.from && time.to == slot.to) {
                             slotAvailable = true;
@@ -97,12 +99,34 @@ const userService = {
             const updatedCart = await Cart.find({userId: user.id}).populate({
                 path: "serviceId",
                 select: "title name description image"
-            }).select({ "userId": 0 })
+            }).select({ "userId": 0 }).lean()
 
+            const formatCart = commonUtil.formatCart(updatedCart)
 
-            return updatedCart;
+            return formatCart;
             
         } catch(error) {
+            console.log(error)
+            return;
+        }
+    },
+    getCart: async function(req) {
+        try {
+            const user = req.user;
+
+            const userExist = await User.exists({email: user.email})
+            if (!userExist) return 'User does not exist';
+
+            const updatedCart = await Cart.find({userId: user.id}).populate({
+                path: "serviceId",
+                select: "title name description image"
+            }).select({ "userId": 0 }).lean()
+
+            const formatCart = commonUtil.formatCart(updatedCart)
+
+            return formatCart;
+
+        } catch (error) {
             console.log(error)
             return;
         }

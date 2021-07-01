@@ -12,6 +12,10 @@ module.exports.app = function (router, port) {
     var logger = require('morgan');
     var app = express();
     const session = require('express-session')
+    const path = require('path')
+    const FileStreamRotator = require('file-stream-rotator')
+    const morgan = require('morgan');
+
 
     var corsOptions = {
         origin: '*',
@@ -33,6 +37,28 @@ module.exports.app = function (router, port) {
 
     }));
 
+    var accessLogStream = FileStreamRotator.getStream({
+        filename: path.join(__dirname, "../logs", 'access_%DATE%.log'),
+        frequency: 'daily',
+        verbose: false,
+        date_format: 'YYYY-MM-DD'
+    })
+    console.log(path.join(__dirname, "logs", 'access_%DATE%.log'))
+
+    app.use(morgan(function(tokens, req, res) {
+        return [
+            tokens.date(req, res, 'clf') || '-',
+            tokens['remote-addr'](req, res) || '-',
+            tokens.method(req, res) || '-',
+            tokens.url(req, res) || '-',
+            'HTTP/'+tokens['http-version'](req, res) || '-',
+            tokens.referrer(req, res) || '-',
+            tokens.status(req, res) || '-',
+            tokens.res(req, res, 'content-length') || '-',
+            tokens['response-time'](req, res)+'ms' || '-'+'0ms' ,
+            tokens['user-agent'](req, res) || '-'
+        ].join(' ')
+    }, {stream: accessLogStream}));
 
 
     app.use(logger('dev'));

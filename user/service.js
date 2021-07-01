@@ -2,6 +2,7 @@ const User = require('../model/user')
 const ServiceModel = require('../model/services')
 const Cart = require('../model/cart')
 const commonUtil = require('../utility/common')
+const Profile = require('../model/profile')
 
 const userService = {
     getService: async function(req) {
@@ -130,7 +131,66 @@ const userService = {
             console.log(error)
             return;
         }
+    },
+    updateProfile: async function(req) {
+        try {
+            const user = req.user;
+
+            const userExist = await User.exists({email: user.email})
+            if (!userExist) return 'User does not exist';
+
+            var { firstName, lastName, DOB, contactNo }= req.body;
+
+            var date = DOB.split('/')
+            DOB = new Date(date[2], date[1] - 1, date[0] )
+
+
+            const profile = await Profile.findOne({userId: user.id})
+
+            if(profile) {
+                profile.firstName = firstName
+                profile.lastName = lastName
+                profile.DOB = DOB
+                profile.contactNo = contactNo
+                await profile.save()
+            } else {
+                const profile = new Profile({ firstName, lastName, DOB, contactNo, userId: user.id })
+                await profile.save()
+            }
+
+            return { firstName, lastName, DOB, contactNo, email: user.email };
+
+        } catch(error) {
+            console.log(error);
+            return;
+        }
+    },
+    getProfile: async function(req) {
+        try {
+            const user = req.user;
+
+            const userExist = await User.exists({email: user.email})
+            if (!userExist) return 'User does not exist';
+
+            var profile = await Profile.findOne({ userId: user.id }).select({"_id": 0}).lean()
+            if(!profile) {
+                return {
+                    firstName: '',
+                    lastName: '',
+                    DOB: '',
+                    contactNo: '',
+                    email: user.email
+                }
+            }
+            profile.emailId = user.email;
+            return profile
+
+        } catch(error) {
+            console.log(error);
+            return;
+        }
     }
+
 }
 
 module.exports = userService;

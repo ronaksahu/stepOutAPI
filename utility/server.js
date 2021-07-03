@@ -43,7 +43,6 @@ module.exports.app = function (router, port) {
         verbose: false,
         date_format: 'YYYY-MM-DD'
     })
-    console.log(path.join(__dirname, "logs", 'access_%DATE%.log'))
 
     app.use(morgan(function(tokens, req, res) {
         return [

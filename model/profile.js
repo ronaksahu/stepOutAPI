@@ -12,6 +12,10 @@ const profileSchema = new Schema({
     DOB: Date,
     contactNo: {
         type: Number
+    },
+    profileImage: {
+        data: Buffer,
+        contentType: String
     }
 })
 

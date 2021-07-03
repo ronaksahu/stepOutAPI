@@ -5,6 +5,8 @@ const commonUtil = require('../utility/common')
 const Profile = require('../model/profile')
 const Review = require('../model/reviews')
 const Order = require('../model/order')
+const fs = require('fs')
+const path = require('path')
 
 const userService = {
     getService: async function(req) {
@@ -25,10 +27,23 @@ const userService = {
                 page = pageCount
             }
 
-            const serviceList = await ServiceModel.find({status: 'Active'} , {vendorId: 0}, {skip: (page - 1) * perPageCount, limit: perPageCount });
+            const filters = req.body.filter;
+            const activityType = filters.activityType;
+            var options = {
+                status: 'Active'
+            }
+            var activityArray = []
+            if(activityType.length > 0) {
+                activityType.forEach(activity => {
+                    activityArray.push({activity_type: activity})
+                })
+                options.$or = activityArray
+            }
+           
+            const serviceList = await ServiceModel.find(options , {vendorId: 0}, {skip: (page - 1) * perPageCount, limit: perPageCount });
 
             return {
-                totalServices: serviceCount,
+                totalServices: serviceList.length,
                 pageCount,
                 serviceList
             };
@@ -137,7 +152,7 @@ const userService = {
     updateProfile: async function(req) {
         try {
             const user = req.user;
-
+            console.log(req.params)
             const userExist = await User.exists({email: user.email})
             if (!userExist) return 'User does not exist';
 
@@ -145,22 +160,40 @@ const userService = {
 
             var date = DOB.split('/')
             DOB = new Date(date[2], date[1] - 1, date[0] )
-
-
             const profile = await Profile.findOne({userId: user.id})
-
+            var profileImage = {}
+            console.log(path.join(__dirname, '../content/profile/'+req.file.filename))
+            if(req.file) {
+                profileImage = {
+                    data: fs.readFileSync(path.join(__dirname, '../content/profile/'+req.file.filename)),
+                    contentType: 'image/png'
+                }
+            }
+            
+            var profSave = null
             if(profile) {
                 profile.firstName = firstName
                 profile.lastName = lastName
                 profile.DOB = DOB
                 profile.contactNo = contactNo
-                await profile.save()
+                if(req.file) {
+                    profile.profileImage = profileImage;
+                }
+                profSave = await profile.save()
             } else {
-                const profile = new Profile({ firstName, lastName, DOB, contactNo, userId: user.id })
-                await profile.save()
+                var profObj = { 
+                    firstName, 
+                    lastName, 
+                    DOB, 
+                    contactNo, 
+                    userId: user.id,
+                    profileImage: profileImage || undefined
+                 }
+                const profile = new Profile(profObj)
+                profSave = await profile.save()
             }
 
-            return { firstName, lastName, DOB, contactNo, email: user.email };
+            return profile;
 
         } catch(error) {
             console.log(error);
@@ -181,7 +214,8 @@ const userService = {
                     lastName: '',
                     DOB: '',
                     contactNo: '',
-                    email: user.email
+                    email: user.email,
+                    profile: ''
                 }
             }
             profile.emailId = user.email;

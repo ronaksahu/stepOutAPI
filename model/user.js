@@ -10,30 +10,14 @@ const UserSchema = new Schema({
         trim: true,
         required: true
     },
-    firstName: {
-        type: String,
-        lowercase: true,
-        trim: true
-    },
-    lastName: {
-        type: String,
-        lowercase: true,
-        trim: true
-    },
-    contactNo: {
-        type: Number,
-        unique: true        
-    },
-    birthDate: {
-        type: String,
-    },
     password: {
         type: String,
         minlength: 7,
         required: true
-    }, 
-    address: {
-        type: String,
+    },
+    socialLogin: {
+        type: Boolean,
+        default: false
     }
 }, {
     timestamps: { createdAt: 'createdAt', updatedAt: 'updatedAt' }

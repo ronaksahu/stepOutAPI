@@ -24,7 +24,11 @@ const userService = {
             const pageCount = Math.ceil(serviceCount / perPageCount)
             if(!page) { page = 1 }
             if(page > pageCount) {
-                page = pageCount
+                return {
+                    totalServices: 0,
+                    pageCount,
+                    serviceList: []
+                }
             }
 
             const filters = req.body.filter;
@@ -41,6 +45,27 @@ const userService = {
             }
            
             const serviceList = await ServiceModel.find(options , {vendorId: 0}, {skip: (page - 1) * perPageCount, limit: perPageCount });
+            const abc = await ServiceModel.aggregate([{
+               $lookup: {
+                   from: "reviews",
+                   localField: "_id",
+                   foreignField: "serviceId",
+                   as: "reviewList"                
+               }
+            }, {
+                $unwind: {
+                    path: "$reviewList",
+                    preserveNullAndEmptyArrays: true
+                }
+            }, {
+                $lookup: {
+                    from: "profiles",
+                    localField: "reviewList.userId",
+                    foreignField: "userId",
+                    as: "reviewList.userInfo"
+                }
+            }]);
+            return abc;
 
             return {
                 totalServices: serviceList.length,

@@ -9,13 +9,16 @@ const profileSchema = new Schema({
     },
     firstName: String,
     lastName: String,
-    DOB: Date,
+    DOB: String,
     contactNo: {
         type: Number
     },
     profileImage: {
         data: Buffer,
         contentType: String
+    },
+    deviceId: {
+        type: String
     }
 })
 

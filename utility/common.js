@@ -119,14 +119,38 @@ var commonUtil = {
             review.review = item.review
             review.createdAt = item.createdAt
             review.updatedAt = item.updatedAt
-            review.serviceId = item.serviceId._id
-            review.title = item.serviceId.title
-            review.name = item.serviceId.name
-            review.description = item.serviceId.description
-            review.image = item.serviceId.image
+            review.serviceId = item.serviceId
+            review.firstName = item.userDetail.firstName
+            review.lastName = item.userDetail.lastName
+            review.profileImage = item.userDetail.profileImage
+
             reviewFormatList.push(review)
         })
         return reviewFormatList;
+    },
+    responseDataV2(status, statusCode, message, data) {
+        var response = {}
+        response.status = status || false
+        response.statusCode = statusCode || 500
+        response.message = message || 'No results found'
+        response.data = data || {}
+        if (!message) delete response.message
+        return response;
+    },
+    formatUserData: function(userData) {
+        var formatUser = {}
+        formatUser.email = userData.userData.email
+        formatUser.socialLogin = userData.userData.socialLogin
+        if(userData.userData.profile.length > 0) {
+            var profile = userData.userData.profile[0]
+            formatUser.firstName = profile.firstName || ''
+            formatUser.lastName = profile.lastName || ''
+            formatUser.profileImage = profile.profileImage || ''
+            formatUser.DOB = profile.DOB || {}
+        }
+        
+        formatUser.JWT_TOKEN = userData.JWT_TOKEN
+        return formatUser;
     }
 }
 

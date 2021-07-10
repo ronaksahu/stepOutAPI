@@ -45,9 +45,11 @@ module.exports.app = function (router, port) {
     })
 
     app.use(morgan(function(tokens, req, res) {
+       // console.log(tokens)
         return [
             tokens.date(req, res, 'clf') || '-',
             tokens['remote-addr'](req, res) || '-',
+            tokens['remote-user'](req, res) || '-',
             tokens.method(req, res) || '-',
             tokens.url(req, res) || '-',
             'HTTP/'+tokens['http-version'](req, res) || '-',

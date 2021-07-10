@@ -3,6 +3,9 @@ const Vendor = require('../model/vendor')
 const Reviews = require('../model/reviews')
 const Order = require('../model/order')
 const commonUtil = require('../utility/common')
+const mongoose = require('mongoose');
+const ObjectId = mongoose.Types.ObjectId;
+
 
 var vendorServices = {
     addService: async function(req) {
@@ -137,11 +140,29 @@ var vendorServices = {
             var filter = {}
             if(serviceId) filter.serviceId = serviceId
 
-            const reviews = await Reviews.find(filter).populate({
+            /*const reviews = await Reviews.find(filter).populate({
                 path: "serviceId",
                 select: "vendorId title name description image",
                 match: {vendorId: {$eq: vendor.id}}
-            }).lean()
+            }).lean()*/
+            const match = filter.serviceId ? { serviceId: ObjectId(serviceId) } : {}
+
+            const reviews = await Reviews.aggregate([ 
+                { "$match": match },
+                {
+                    $lookup: {
+                        from: "profiles",
+                        localField: "userId",
+                        foreignField: "userId",
+                        as: "userDetail"                
+                    }
+            }, {
+                $unwind: {
+                    path: "$userDetail",
+                    preserveNullAndEmptyArrays: true
+                }
+            }])
+
             return commonUtil.vendorReviewFormat(reviews);
             
         } catch(error) {

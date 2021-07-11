@@ -1,3 +1,6 @@
+const request = require('../utility/request')
+
+
 var commonUtil = {
     formatCart: function(cartList) {
         var cartObj = {}
@@ -71,23 +74,26 @@ var commonUtil = {
     },
     reviewFormatData: function(reviewList) {
         var reviews = []
-        var avgReview = 0;
+        var totalRating = 0;
+        if(reviewList.length == 0) {
+            return { reviews: [], avgRating: 0}
+        }
         reviewList.forEach(item => {
             const review = {}
             review._id = item._id;
-            review.rating = item.rating;
-            avgReview += item.rating
+            review.rating = item.rating ? item.rating : 0;
+            totalRating += item.rating ? item.rating : 0
             review.review = item.review;
-            review.serviceId = item.serviceId._id;
-            review.title = item.serviceId.title;
-            review.name = item.serviceId.name;
-            review.description = item.serviceId.description;
+            review.serviceId = item.service._id;
+            review.title = item.service.title;
+            review.name = item.userDetail.firstName+' '+item.userDetail.lastName;
+            review.description = item.service.description;
+            review.image = item.service.image;
             review.createdAt = item.createdAt;
-            review.updatedAt = item.updatedAt;
             reviews.push(review)
         })
 
-        return {reviews, avgReview: avgReview / reviewList.length};
+        return {reviews, avgRating: totalRating / reviewList.length};
     },
     vendorOrderFormat: function(orderList) {
         var formatOrderList = []
@@ -151,6 +157,45 @@ var commonUtil = {
         
         formatUser.JWT_TOKEN = userData.JWT_TOKEN
         return formatUser;
+    },
+    formatGetService: async function(serviceList, req) {
+        var dataList = []
+        
+      //  serviceList.forEach(async item => {
+        for(var i = 0 ; i < serviceList.length ; i++) {
+            var item = serviceList[i]
+            var service = {}
+            service._id = item._id
+            service.activity_type = item.activity_type
+            service.title = item.title
+            service.name = item.name
+            service.description = item.description
+            service.image = item.image
+            service.description = item.description
+            service.prices = item.prices
+            service.timeBased = item.timeBased
+            if(item.timeBased) {
+                service.timeSlots = item.timeSlots
+            }
+            var review = await commonUtil.getReview(item._id.toString(), req);
+            service.avgRating = Number(review.avgRating)
+            if(serviceList.length == 1) {
+                service.review = review.reviews
+            }
+            dataList.push(service)
+
+        }
+        return dataList;
+    },
+    getReview: async function(serviceId, req) {
+        var ratings = 0;
+        const header = {
+            Authorization: req.headers.authorization,
+            'Content-Type': 'application/json'
+        }
+        var reviewList = await request.get('http://localhost:8800/api/user/getReview', { serviceId }, header)
+        reviewList = JSON.parse(reviewList)
+        return reviewList
     }
 }
 

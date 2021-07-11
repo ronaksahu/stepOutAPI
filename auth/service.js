@@ -32,12 +32,11 @@ var authService = {
 
             return {
                 email,
-                profile: {
-                    firstName: firstName || undefined,
-                    lastName: lastName || undefined,
-                    DOB: DOB || undefined,
-                    contactNo: contactNo || undefined
-                },
+                firstName: firstName || undefined,
+                lastName: lastName || undefined,
+                DOB: DOB || undefined,
+                contactNo: contactNo || undefined,
+                socialLogin: false,
                 JWT_TOKEN
             }
 
@@ -49,7 +48,7 @@ var authService = {
     registerVendor: async function(req) {
         try {
 
-            const {email, password} = req.body;
+            const {email, password, firstName, lastName, DOB, contactNo } = req.body;
         
             const vendorAlreadyExist = await Vendor.exists({email});
             if(vendorAlreadyExist) return 'Email already registered';
@@ -57,10 +56,25 @@ var authService = {
             const vendor = new Vendor({email, password})
             await vendor.save()
 
+            var profData = new Profile({
+                firstName: firstName || undefined,
+                lastName: lastName || undefined,
+                DOB: DOB || undefined,
+                contactNo: contactNo || undefined,
+                userId: vendor._id
+            })
+
+            await profData.save()
+
             const JWT_TOKEN = utils.generateAccessToken({id: vendor._id, email: vendor.email, userType: req.body.userType })
 
             return {
                 email,
+                firstName: firstName || undefined,
+                lastName: lastName || undefined,
+                DOB: DOB || undefined,
+                contactNo: contactNo || undefined,
+                socialLogin: false,
                 JWT_TOKEN
             }
 
@@ -103,21 +117,27 @@ var authService = {
         try {
             const {email, password} = req.body;
 
-            const user = await Vendor.findOne({email});
-
-            if(!user) return "email is not registered";
-
-            const passMatched = await bcrypt.compare(password, user.password);
+            var userData = await Vendor.aggregate([
+                {"$match": { email: email} },{
+                $lookup: {
+                    from: "profiles",
+                    localField: "_id",
+                    foreignField: "userId",
+                    as: "profile"                
+                }
+             }]);
+             if(userData.length == 0) return "email is not registered";
+             userData = userData[0]
+            const passMatched = await bcrypt.compare(password, userData.password);
      
             if(!passMatched) return "Incorrect Password";
     
-            const JWT_TOKEN = utils.generateAccessToken({id: user._id, email: user.email, userType: req.body.userType })
+            const JWT_TOKEN = utils.generateAccessToken({id: userData._id, email: userData.email, userType: req.body.userType })
 
-            return {
-                email: user.email,
+            return commonUtil.formatUserData({
+                userData: userData,
                 JWT_TOKEN
-            }
-
+            })
         } catch(error) {
             console.log(error)
         }

@@ -44,7 +44,14 @@ var vendorServices = {
             
             const service = new ServiceModel(data);
             const serviceSave = await service.save();
-            return serviceSave
+            if(serviceSave) {
+                return {
+                    status: true
+                }
+            }
+            return {
+                status: false
+            }
 
         } catch(error) {
             console.log(error);
@@ -146,7 +153,7 @@ var vendorServices = {
                 match: {vendorId: {$eq: vendor.id}}
             }).lean()*/
             const match = filter.serviceId ? { serviceId: ObjectId(serviceId) } : {}
-
+            
             const reviews = await Reviews.aggregate([ 
                 { "$match": match },
                 {

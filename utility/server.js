@@ -44,6 +44,12 @@ module.exports.app = function (router, port) {
         date_format: 'YYYY-MM-DD'
     })
 
+    morgan.token('remote-user', function getRemoteUserToken(req) {
+        return req.user
+         ? req.user.id
+         : undefined
+    })
+
     app.use(morgan(function(tokens, req, res) {
        // console.log(tokens)
         return [

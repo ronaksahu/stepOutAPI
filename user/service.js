@@ -7,11 +7,14 @@ const Review = require('../model/reviews')
 const Order = require('../model/order')
 const fs = require('fs')
 const path = require('path')
+const mongoose = require('mongoose');
+const ObjectId = mongoose.Types.ObjectId;
 
 const userService = {
     getService: async function(req) {
         try {
             const user = req.user;
+            const serviceId = req.query.serviceId;
 
             const userExist = await User.exists({email: user.email})
             if (!userExist) return 'User does not exist';
@@ -43,35 +46,46 @@ const userService = {
                 })
                 options.$or = activityArray
             }
-           
-            const serviceList = await ServiceModel.find(options , {vendorId: 0}, {skip: (page - 1) * perPageCount, limit: perPageCount });
-            const abc = await ServiceModel.aggregate([{
-               $lookup: {
-                   from: "reviews",
-                   localField: "_id",
-                   foreignField: "serviceId",
-                   as: "reviewList"                
-               }
-            }, {
-                $unwind: {
-                    path: "$reviewList",
-                    preserveNullAndEmptyArrays: true
-                }
-            }, {
-                $lookup: {
-                    from: "profiles",
-                    localField: "reviewList.userId",
-                    foreignField: "userId",
-                    as: "reviewList.userInfo"
-                }
-            }]);
-            return abc;
+           if(serviceId) {
+               options._id = serviceId
+           }
+            const serviceList = await ServiceModel.find(options , {vendorId: 0}, {skip: (page - 1) * perPageCount, limit: perPageCount }).lean();
+            var reviewPromiseArr = []
+            //console.log(req.headers)
+            
+           /* console.log(header)
+            serviceList.forEach(service => {
+                reviewPromiseArr.push(request.get('http://localhost:8800/api/user/getReview', { serviceId: service._id.toString() }, header))
+            })
+            let reviewData = await Promise.all(reviewPromiseArr)
+            console.log(reviewData)*/
 
-            return {
+            var formatData = await  commonUtil.formatGetService(serviceList, req);
+            if(req.body.sort.by == "Rating") {
+                formatData.sort((a, b) => {
+                    if(req.body.sort.sorting == "Ascending") {
+                        return b.avgRating - a.avgRating
+                    }
+                    if(req.body.sort.sorting == "Descending") {
+                        return a.avgRating - b.avgRating
+                    }  
+                })
+            }
+            if(req.body.sort.by == "Title") {
+                if(req.body.sort.sorting == "Ascending") {
+                    formatData.sort((a,b) => (a.title > b.title) ? 1 : ((b.title > a.title) ? -1 : 0))
+                }
+                if(req.body.sort.sorting == "Descending") {
+                    formatData.sort((a,b) => (a.title > b.title) ? -1 : ((b.title > a.title) ? 1 : 0))
+                }            
+            }
+            /*return {
                 totalServices: serviceList.length,
                 pageCount,
                 serviceList
-            };
+            };*/
+
+            return formatData;
 
         } catch(error) {
             console.log(error)
@@ -354,14 +368,59 @@ const userService = {
             if (!userExist) return 'User does not exist';
 
             var filter = {}
-            if(serviceId) filter.serviceId = serviceId
+            //if(serviceId) filter.serviceId = serviceId
 
-            const reviewList = await Review.find(filter).populate({
+            /*const reviewList = await Review.find(filter).populate({
                 path: "serviceId",
                 select: "title name description image"
-            }).select({ "userId": 0 }).lean()
+            }).select({ "userId": 0, "createdAt": 0, "updatedAt": 0 }).lean()*/
 
-            return commonUtil.reviewFormatData(reviewList)
+            const match = serviceId ? { serviceId: ObjectId(serviceId) } : {}
+
+
+            const reviews = await Review.aggregate([ 
+                { "$match": match },
+                {
+                    $lookup: {
+                        from: "profiles",
+                        localField: "userId",
+                        foreignField: "userId",
+                        as: "userDetail"                
+                    }
+            }, {
+                $unwind: {
+                    path: "$userDetail",
+                    preserveNullAndEmptyArrays: true
+                }
+            }, {
+                $lookup: {
+                    from: "services",
+                    localField: "serviceId",
+                    foreignField: "_id",
+                    as: "service"                
+                }
+        }, {
+            $unwind: {
+                path: "$service",
+                preserveNullAndEmptyArrays: true
+            }
+        }, {
+            "$project": {
+              "_id": 1,
+              "rating": 1,
+              "review": 1,
+              "userDetail.firstName": 1,
+              "userDetail.lastName": 1,
+              "service._id": 1,
+              "service.title": 1,
+              "service.name": 1,
+              "service.description": 1,
+              "service.image": 1,
+              "createdAt": 1
+            }
+          }])
+           // return reviews;
+            return commonUtil.reviewFormatData(reviews)
 
         } catch (error) {
             console.log(error)

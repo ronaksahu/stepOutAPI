@@ -211,6 +211,19 @@ var commonUtil = {
         var destLatLon = await request.get('https://maps.googleapis.com/maps/api/geocode/json', body, '', 0 );
         destLatLon = JSON.parse(destLatLon)
         return destLatLon.results[0].geometry.location;
+    },
+    formatWhishList: async function(whishList) {
+        var formatWhishList = [];
+        whishList.forEach(item => {
+            var service = {}
+            service.serviceId = item.serviceId._id;
+            service.title = item.serviceId.title;
+            service.name = item.serviceId.name;
+            service.description = item.serviceId.description;
+            service.image = item.serviceId.image;
+            formatWhishList.push(service)
+        })
+        return formatWhishList;
     }
 }
 

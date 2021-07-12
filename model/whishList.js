@@ -11,11 +11,7 @@ const WhishListSchema = new Schema({
         type: Schema.Types.ObjectId,
         ref: 'Services',
         required: true
-    },
-    title: String,
-    name: String,
-    description: String,
-    image: String
+    }
 });
 
 module.exports = mongoose.model('whishList', WhishListSchema)

@@ -17,7 +17,7 @@ const profileSchema = new Schema({
         data: Buffer,
         contentType: String
     },
-    deviceId: {
+    deviceToken: {
         type: String
     }
 })

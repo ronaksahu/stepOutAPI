@@ -25,5 +25,9 @@ routes.get('/placeOrder', userController.placeOrder)
 routes.get('/myOrders', userController.myOrders)
 routes.post('/postReview', userController.postReview)
 routes.get('/getReview', userController.getReview)
+routes.post('/addToWhishList', userController.addToWhishList);
+routes.get('/getWhishList', userController.getWhishList)
+routes.post('/setDeviceId', userController.setDeviceId)
+routes.post('/updateNotificationPermission', userController.updateNotificationPermission)
  
 module.exports = routes;

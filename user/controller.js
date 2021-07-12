@@ -90,6 +90,42 @@ const userController = {
             console.log(error)
             res.sendStatus(500)
         }
+    },
+    addToWhishList: async function(req, res) {
+        try {
+            var result = await userService.addToWhishList(req);
+            res.status(200).json(result)
+        } catch(error) {
+            console.log(error)
+            res.sendStatus(500)
+        }
+    },
+    getWhishList: async function(req, res) {
+        try {
+            var result = await userService.getWhishList(req);
+            res.status(200).json(result)
+        } catch(error) {
+            console.log(error)
+            res.sendStatus(500)
+        }
+    },
+    setDeviceId: async function(req, res) {
+        try {
+            var result = await userService.setDeviceId(req);
+            res.status(200).json(result)
+        } catch (error) {
+            console.log(error)
+            res.sendStatus(500)
+        }
+    },
+    updateNotificationPermission: async function(req, res) {
+        try {
+            var result = await userService.updateNotificationPermission(req)
+            res.status(200).json(result)
+        } catch (error) {
+            console.log(error)
+            res.sendStatus(500)
+        }
     }
 }
 

@@ -10,6 +10,8 @@ const path = require("path");
 const mongoose = require("mongoose");
 const ObjectId = mongoose.Types.ObjectId;
 const util = require("../utility/utils");
+const WhishList = require("../model/whishList");
+const NotificationPermission = require('../model/notification')
 
 const userService = {
   getService: async function (req) {
@@ -55,30 +57,26 @@ const userService = {
         options._id = serviceId;
       }
       var serviceList = null;
-      if(req.query.qs) {
+      if (req.query.qs) {
         var searchText = req.query.qs;
-        serviceList = await ServiceModel.find({$or : [
-            { name: { $regex : searchText } },
-            { title: { $regex : searchText } },
-            { description: { $regex : searchText } }
-        ]}).lean()
+        serviceList = await ServiceModel.find(
+          {
+            $or: [
+              { name: { $regex: searchText } },
+              { title: { $regex: searchText } },
+              { description: { $regex: searchText } },
+            ],
+          },
+          { vendorId: 0 },
+          { skip: (page - 1) * perPageCount, limit: perPageCount }
+        ).lean();
       } else {
         serviceList = await ServiceModel.find(
-            options,
-            { vendorId: 0 },
-            { skip: (page - 1) * perPageCount, limit: perPageCount }
-          ).lean();
+          options,
+          { vendorId: 0 },
+          { skip: (page - 1) * perPageCount, limit: perPageCount }
+        ).lean();
       }
-
-      var reviewPromiseArr = [];
-      //console.log(req.headers)
-
-      /* console.log(header)
-            serviceList.forEach(service => {
-                reviewPromiseArr.push(request.get('http://localhost:8800/api/user/getReview', { serviceId: service._id.toString() }, header))
-            })
-            let reviewData = await Promise.all(reviewPromiseArr)
-            console.log(reviewData)*/
 
       var formatData = await commonUtil.formatGetService(serviceList, req);
 
@@ -481,14 +479,6 @@ const userService = {
       const userExist = await User.exists({ email: user.email });
       if (!userExist) return "User does not exist";
 
-      var filter = {};
-      //if(serviceId) filter.serviceId = serviceId
-
-      /*const reviewList = await Review.find(filter).populate({
-                path: "serviceId",
-                select: "title name description image"
-            }).select({ "userId": 0, "createdAt": 0, "updatedAt": 0 }).lean()*/
-
       const match = serviceId
         ? { serviceId: ObjectId(serviceId) }
         : { userId: ObjectId(user.id) };
@@ -546,6 +536,92 @@ const userService = {
       return;
     }
   },
+  addToWhishList: async function (req) {
+    try {
+      const user = req.user;
+      const serviceId = req.body.serviceId;
+
+      const userExist = await User.exists({ email: user.email });
+      if (!userExist) return "User does not exist";
+
+      const serviceData = await ServiceModel.exists({
+        _id: serviceId,
+        status: "Active",
+      });
+      if (!serviceData) return "Service is not available";
+
+      const whishList = new WhishList({ userId: user.id, serviceId });
+      var whishListSave = await whishList.save();
+      if (whishListSave) {
+        return {
+          status: true,
+        };
+      } else {
+        return {
+          status: false,
+        };
+      }
+    } catch (error) {
+      console.log(error);
+      return;
+    }
+  },
+  getWhishList: async function (req) {
+    try {
+      const user = req.user;
+
+      const userExist = await User.exists({ email: user.email });
+      if (!userExist) return "User does not exist";
+
+      var userWhishList = await WhishList.find({ userId: user.id }).populate({
+        path: "serviceId",
+        select: "title name description image",
+      }).select({ userId: 0 });
+      return commonUtil.formatWhishList(userWhishList);
+    } catch (error) {
+      console.log(error);
+      return;
+    }
+  },
+  setDeviceId: async function (req) {
+    try {
+      const user = req.user;
+
+      const userExist = await User.exists({ email: user.email });
+      if (!userExist) return "User does not exist";
+
+      const deviceToken = req.body.token;
+      if(!deviceToken) return 'token needed'
+
+      const updateToken = await Profile.updateOne({ userId: '60ead8bbeb0bdc58401487f2' }, { deviceToken:  deviceToken}) 
+      if(updateToken.nModified && updateToken.n) {
+        return {
+          status: true
+        }
+      } else {
+        return { status: false }
+      }
+      
+    } catch (error) {
+      console.log(error);
+      return;
+    }
+  },
+  updateNotificationPermission: async function(req) {
+    try {
+      const user = req.user;
+
+      const userExist = await User.exists({ email: user.email });
+      if (!userExist) return "User does not exist";
+
+      var notificationUser = await NotificationPermission.findOne({ userId: user.id })
+      return notificationUser;
+      
+    } catch (error) {
+      console.log(error)
+      return;
+    }
+  }
 };
 
 module.exports = userService;

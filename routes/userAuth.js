@@ -29,5 +29,6 @@ routes.post('/addToWhishList', userController.addToWhishList);
 routes.get('/getWhishList', userController.getWhishList)
 routes.post('/setDeviceId', userController.setDeviceId)
 routes.post('/updateNotificationPermission', userController.updateNotificationPermission)
+routes.post('/sendNotification', userController.sendNotification)
  
 module.exports = routes;

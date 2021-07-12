@@ -126,6 +126,16 @@ const userController = {
             console.log(error)
             res.sendStatus(500)
         }
+    },
+    sendNotification: async function(req, res) {
+        try {
+            var result = await userService.sendNotification(req);
+            res.status(200).json(result)
+        } catch (error) {
+            console.log(error)
+            res.sendStatus(500)
+        }
+        
     }
 }
 

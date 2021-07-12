@@ -224,6 +224,14 @@ var commonUtil = {
             formatWhishList.push(service)
         })
         return formatWhishList;
+    },
+    formatNotificationPermission: async function(notifications) {
+        console.log(notifications)
+        var formatNotification = {}
+        notifications.mapping.forEach(noti => {
+            formatNotification[noti.key] = true;
+        })
+        return formatNotification;
     }
 }
 

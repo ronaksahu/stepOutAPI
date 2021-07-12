@@ -12,6 +12,7 @@ const ObjectId = mongoose.Types.ObjectId;
 const util = require("../utility/utils");
 const WhishList = require("../model/whishList");
 const NotificationPermission = require('../model/notification')
+const sendNotification = require('../utility/notification')
 
 const userService = {
   getService: async function (req) {
@@ -614,12 +615,96 @@ const userService = {
       const userExist = await User.exists({ email: user.email });
       if (!userExist) return "User does not exist";
 
+      var notObj = req.body;
+
       var notificationUser = await NotificationPermission.findOne({ userId: user.id })
-      return notificationUser;
+      var notificationSaved = null;
+
+      if(notificationUser) {
+        if(notObj.operation == "add"){
+          if(notObj.notificationKey == 'All') {
+            var mapping = []
+            mapping.push(notObj.notificationKey)
+            notificationUser.mapping = mapping;
+          } else {
+            var mapping = notificationUser.mapping;
+            var mappingExist = mapping.find(map => map == notObj.notificationKey)
+            var index = mapping.indexOf('All');
+            if (index !== -1) {
+              mapping.splice(index, 1);
+            }
+            if(!mappingExist) {
+              mapping.push(notObj.notificationKey)
+            }
+          }
+        } else if(notObj.operation == "delete") {
+          var mapping = notificationUser.mapping;
+          mapping = mapping.filter(key => key != notObj.notificationKey)
+          notificationUser.mapping = mapping;
+        }
+        notificationSaved = await notificationUser.save();
+      } else {
+        if(notObj.operation == "add"){
+          var mapping = []
+          mapping.push(notObj.notificationKey)
+          var notSaveObj = new NotificationPermission({ userId: user.id, mapping })
+          notificationSaved = await notSaveObj.save();
+        }
+      }
+      return notificationSaved.mapping;
       
     } catch (error) {
       console.log(error)
       return;
+    }
+  },
+  sendNotification: async function(req) {
+    try {
+
+      const notificationKey = req.body.notificationKey;
+      
+      var options = {}
+      var mappingList = []
+      mappingList.push({mapping:notificationKey })
+      mappingList.push({mapping: 'All' })
+      options.$or = mappingList;
+      console.log(options)
+      /*const userId = await NotificationPermission.find(options)
+      .select({'mapping': 1, 'userId': 1})*/
+
+      const notData = await NotificationPermission.aggregate([
+        { $match: options },
+        {
+          $lookup: {
+            from: "profiles",
+            localField: "userId",
+            foreignField: "userId",
+            as: "userDetail",
+          },
+        },
+        {
+          $unwind: {
+            path: "$userDetail",
+            preserveNullAndEmptyArrays: true,
+          },
+        }, {
+          $project: {
+            mapping: 1,
+            "userDetail.deviceToken": 1
+          },
+        }
+      ])
+      var deviceTokensList = []
+      notData.forEach(data => {
+        deviceTokensList.push(data.userDetail.deviceToken)
+        data.deviceToken = data.userDetail.deviceToken;
+        delete data.userDetail
+      })
+      await sendNotification(deviceTokensList, 'message')
+      return true;      
+    } catch(error) {
+      console.log(error)
+      return; 
     }
   }
 };

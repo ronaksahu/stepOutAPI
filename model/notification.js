@@ -7,9 +7,7 @@ const notificationSchema = new Schema({
         ref: 'User',
         required: true
     },
-    mapping: [{
-        key: String
-    }]
+    mapping: [String]
 }, {
     timestamps: { createdAt: 'createdAt', updatedAt: 'updatedAt' }
 });

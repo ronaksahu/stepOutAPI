@@ -11,7 +11,7 @@ var vendorServices = {
     addService: async function(req) {
         try {
             
-            var { title, name, description, image, activity_type, prices, timeBased, timeSlots } = req.body;
+            var { title, name, description, image, activity_type, prices, timeBased, timeSlots, addressDetail } = req.body;
 
             if(timeBased) {
                 timeSlots = req.body.timeSlots;
@@ -38,6 +38,7 @@ var vendorServices = {
                 prices, 
                 vendorId: vendor.id, 
                 timeBased, 
+                addressDetail
                }
 
             if(timeBased) data.timeSlots = timeSlots

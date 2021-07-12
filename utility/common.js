@@ -1,5 +1,6 @@
 const request = require('../utility/request')
-
+const config = require('../config')
+const utils = require('./utils')
 
 var commonUtil = {
     formatCart: function(cartList) {
@@ -182,6 +183,10 @@ var commonUtil = {
             if(serviceList.length == 1) {
                 service.review = review.reviews
             }
+            if(item.addressDetail) {
+                serviceLatLon = await this.getLatLon(item.addressDetail, req)
+                service.distance = Number(utils.distance(req.body.userLocation, serviceLatLon)).toFixed(2);
+            }
             dataList.push(service)
 
         }
@@ -196,6 +201,16 @@ var commonUtil = {
         var reviewList = await request.get('http://localhost:8800/api/user/getReview', { serviceId }, header)
         reviewList = JSON.parse(reviewList)
         return reviewList
+    },
+    getLatLon: async function(address){
+        const addressDetail = address.address+' '+address.street+ ' '+address.city;
+        var body = {
+            address: addressDetail,
+            key: config.GoogleAPIKey
+        }
+        var destLatLon = await request.get('https://maps.googleapis.com/maps/api/geocode/json', body, '', 0 );
+        destLatLon = JSON.parse(destLatLon)
+        return destLatLon.results[0].geometry.location;
     }
 }
 

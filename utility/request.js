@@ -46,13 +46,13 @@ var apiRequest = {
           gzip: true,
           qsStringifyOptions: { indices: false }
         };
+        console.log("GET "+url+"  " + JSON.stringify(body));
         return new Promise((resolve, reject) => {
           request.get(url, option, (err, res, body) => {
               if (err) {
                 console.log("time out in :",timeout);
                 resolve({ status: false, error: err });
                 }
-              //  console.log("res " + JSON.stringify(body));
               console.log("Request time in ms", new Date() - start);
               resolve(body);
             }

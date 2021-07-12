@@ -9,6 +9,7 @@ const fs = require('fs')
 const path = require('path')
 const mongoose = require('mongoose');
 const ObjectId = mongoose.Types.ObjectId;
+const util = require('../utility/utils')
 
 const userService = {
     getService: async function(req) {
@@ -61,6 +62,16 @@ const userService = {
             console.log(reviewData)*/
 
             var formatData = await  commonUtil.formatGetService(serviceList, req);
+
+            if(req.body.priceRange) {
+                formatData = formatData.filter(service => {
+                    var minPrice = util.getMinPriceService(service)
+                    var maxPrice = util.getMaxPriceService(service)
+                    if(minPrice >= req.body.priceRange.min && maxPrice <= req.body.priceRange.max) {
+                        return true;
+                    }
+                })
+            }
             if(req.body.sort.by == "Rating") {
                 formatData.sort((a, b) => {
                     if(req.body.sort.sorting == "Ascending") {
@@ -79,11 +90,35 @@ const userService = {
                     formatData.sort((a,b) => (a.title > b.title) ? -1 : ((b.title > a.title) ? 1 : 0))
                 }            
             }
-            /*return {
-                totalServices: serviceList.length,
-                pageCount,
-                serviceList
-            };*/
+            if(req.body.sort.by == "Distance") {
+                if(req.body.sort.sorting == "Ascending") {
+                    formatData.sort((a,b) => (a.distance > b.distance) ? 1 : ((b.distance > a.distance) ? -1 : 0))
+                }
+                if(req.body.sort.sorting == "Descending") {
+                    formatData.sort((a,b) => (a.distance > b.distance) ? -1 : ((b.distance > a.distance) ? 1 : 0))
+                }            
+            }
+            if(req.body.sort.by == "Price") {
+                if(req.body.sort.sorting == "Ascending") {
+                    formatData.sort((a,b) => {
+                        var aMinPrice = util.getMinPriceService(a);
+                        var bMinPrice = util.getMinPriceService(b);
+                        if(aMinPrice > bMinPrice) return -1;
+                        else if(bMinPrice > aMinPrice) return 1;
+                        return 0;
+                    })
+                }
+                if(req.body.sort.sorting == "Descending") {
+                    formatData.sort((a,b) => {
+                        var aMinPrice = util.getMinPriceService(a);
+                        var bMinPrice = util.getMinPriceService(b);
+                        console.log(aMinPrice+ "  "+bMinPrice)
+                        if(aMinPrice > bMinPrice) return 1;
+                        else if(bMinPrice > aMinPrice) return -1;
+                        return 0;
+                    })
+                }            
+            }
 
             return formatData;
 
@@ -427,7 +462,6 @@ const userService = {
             return;
         }
     }
-
 }
 
 module.exports = userService;

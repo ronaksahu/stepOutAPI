@@ -34,7 +34,12 @@ const utils = {
     generateAccessToken: function(user) {
         return jwt.sign(user, config.JWT_ACCESS_TOKEN_SECRET);
     },
-    distance: function(lat1, lon1, lat2, lon2, unit) {
+    distance: function(userLocation, serviceLocation, unit) {
+        const lat1 = userLocation.lat;
+        const lon1 = userLocation.lng;
+        const lat2 = serviceLocation.lat;
+        const lon2 = serviceLocation.lng
+
         if ((lat1 == lat2) && (lon1 == lon2)) {
             return 0;
         }
@@ -81,6 +86,28 @@ const utils = {
             return true;
         } 
         return false;
+    },
+    getMinPriceService: function(priceObj) {
+        var minPrice = 99999;
+        priceObj.prices.forEach(price => {
+            price.prices.forEach(item => {
+                if(minPrice > item.amount) {
+                    minPrice = item.amount;
+                }
+            })
+        });
+        return minPrice;
+    },
+    getMaxPriceService: function(priceObj) {
+        var maxPrice = 0;
+        priceObj.prices.forEach(price => {
+            price.prices.forEach(item => {
+                if(maxPrice < item.amount) {
+                    maxPrice = item.amount;
+                }
+            })
+        });
+        return maxPrice;
     }
 
 }

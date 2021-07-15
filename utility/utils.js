@@ -2,6 +2,8 @@ const jwt = require('jsonwebtoken');
 const config = require('../config.json')
 const otpGenerator = require("otp-generator");
 const crypto       = require("crypto");
+const Vendor = require('../model/vendor');
+const moment= require('moment') 
 
 const utils = {
 
@@ -29,6 +31,12 @@ const utils = {
 
         const user = req.user
         if(user.userType != 'user') res.sendStatus(401)
+        next();
+    },
+    validateVendor: async function(req, res, next) {
+        const vendor = req.user
+        const vendorExist = await Vendor.exists({email: vendor.email});
+        if(!vendorExist) res.sendStatus(403)
         next();
     },
     generateAccessToken: function(user) {
@@ -108,6 +116,50 @@ const utils = {
             })
         });
         return maxPrice;
+    },
+    getDatesBetweenRange: function(dateRange, days) {
+        var start = dateRange.from,
+            end = dateRange.to;
+        var daysMap = {sun:1,mon:2,tue:3,wed:4,thu:5,fri:6,sat:7,all:8};
+        var dayList = []
+        if(days.indexOf('all') > -1 ) {
+            return utils.getDates(start, end)
+        } else {
+            var result = []
+            days.forEach(day => {
+                var dayNo = daysMap[day.toLowerCase()]
+                result.push(...utils.getDatesOfDays(start, end, dayNo))
+            })
+            return result;
+        }    
+    },
+    getDates: function(startDate, stopDate) {
+        var dateArray = [];
+        startDate = startDate.split('/')
+        stopDate = stopDate.split('/')
+        currentDate = moment(new Date(Number(startDate[2]), Number(startDate[1])-1, Number(startDate[0])));
+        stopDate = moment(new Date(Number(stopDate[2]), Number(stopDate[1])-1, Number(stopDate[0])));
+        while (currentDate <= stopDate) {
+            dateArray.push( moment(currentDate))
+            currentDate = moment(currentDate).add(1, 'days');
+        }
+        return dateArray;
+    },
+    getDatesOfDays: function(startDate, stopDate, day) {
+        startDate = startDate.split('/')
+        stopDate = stopDate.split('/')
+        var start = moment(new Date(Number(startDate[2]), Number(startDate[1])-1, Number(startDate[0]))), // Sept. 1st
+            end   = moment(new Date(Number(stopDate[2]), Number(stopDate[1])-1, Number(stopDate[0]))) // Nov. 2nd
+        var result = []
+        var current = new Date(start);
+        // Shift to next of required days
+        current.setDate(current.getDate() + (day - current.getDay() + 7) % 7);
+        // While less than end date, add dates to result array
+        while (current < end) {
+            result.push(new Date(+current));
+            current.setDate(current.getDate() + 7);
+        }
+        return result;
     }
 
 }

@@ -7,21 +7,14 @@ const AddressSchema = mongoose.Schema({
     city: String
 })
 
-const timeSlotsSchema = mongoose.Schema({
-    date: Date,
-    timeSlots: [{
-        from: String,
-        to: String
-    }, { _id : false }]
-} , { _id : false })
-
 const priceSchema = mongoose.Schema({
-    category: {type: String},
+    category: String,
     prices: [{
         title: String,
-        amount: Number
-    }, { _id : false }]
-}, { _id : false })
+        amount: Number,
+        availability: Number,
+    }]
+})
 
 const ServiceSchema = new Schema({
     title: {
@@ -54,14 +47,12 @@ const ServiceSchema = new Schema({
     prices: [priceSchema],
     addressDetail: AddressSchema,
     timeBased: {type: Boolean},
-    timeSlots: [timeSlotsSchema],
     status: {
         type: String,
         required: true,
         default: 'Active',
         enum: ['Active', 'Inactive']
     }
-
 }, {
     timestamps: { createdAt: 'createdAt', updatedAt: 'updatedAt' }
 });

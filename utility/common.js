@@ -232,6 +232,39 @@ var commonUtil = {
             formatNotification[noti.key] = true;
         })
         return formatNotification;
+    },
+    formatMappingData: async function(mappingList) {
+        var formatData = []
+        if(mappingList.length == 0) return { status: false }
+        mappingList.forEach(service => {
+            var formatService = {}
+            var category = []
+            formatService.serviceId = service._id;
+            formatService.title = service.title;
+            if(service.prices.length == 0) return {}
+            service.prices.forEach(cat => {
+                var catObj = {}
+                catObj.categoryId = cat._id
+                catObj.categoryName = cat.category
+                if(cat.prices.length == 0) return;
+                var priceArr = []
+                catObj.prices = priceArr
+                cat.prices.forEach(price => {
+                    var priceObj = {}
+                    priceObj.priceId = price._id;
+                    priceObj.title = price.title;
+                    priceObj.amount = price.amount;
+                    priceObj.availability = price.availability;
+                    priceArr.push(priceObj)
+                })
+                category.push(catObj)
+            })
+            if(category.length == 0) return;
+            formatService.prices = category;
+            formatData.push(formatService)
+        })
+        
+        return formatData
     }
 }
 

@@ -166,6 +166,8 @@ var commonUtil = {
         for(var i = 0 ; i < serviceList.length ; i++) {
             var item = serviceList[i]
             var service = {}
+            var isAvailable = commonUtil.checkForAvailability(item.prices)
+            if(!isAvailable) continue;
             service._id = item._id
             service.activity_type = item.activity_type
             service.title = item.title
@@ -173,22 +175,42 @@ var commonUtil = {
             service.description = item.description
             service.image = item.image
             service.description = item.description
-            service.prices = item.prices
+            var catArr = []
+            if(item.prices.length == 0) return;
+            item.prices.forEach(cat => {
+                if(cat.prices.length == 0) return;
+                var catObj = {}
+                var priceArr = []
+                cat.prices.forEach(priceEle => {
+                    var priceObj = {}
+                    if(priceEle.availability > 0) {
+                        priceObj = priceEle;
+                        priceArr.push(priceObj)
+                    }
+                })
+                if(priceArr.length == 0 ) return;
+                catObj._id = cat._id 
+                catObj.category = cat.category 
+                catObj.prices = priceArr 
+                catArr.push(catObj)
+            })
+            service.prices = catArr
             service.timeBased = item.timeBased
+
             if(item.timeBased) {
                 service.timeSlots = item.timeSlots
             }
             var review = await commonUtil.getReview(item._id.toString(), req);
             service.avgRating = Number(review.avgRating)
-            if(serviceList.length == 1) {
+            if(req.query.serviceId) {
                 service.review = review.reviews
             }
             if(item.addressDetail) {
                 serviceLatLon = await this.getLatLon(item.addressDetail, req)
                 service.distance = Number(utils.distance(req.body.userLocation, serviceLatLon)).toFixed(2);
+                service.location = serviceLatLon
             }
             dataList.push(service)
-
         }
         return dataList;
     },
@@ -265,6 +287,21 @@ var commonUtil = {
         })
         
         return formatData
+    },
+    checkForAvailability: function(prices) {
+        var isAvailable = false;
+        if(prices.length == 0) return false;
+
+        prices.forEach(cat => {
+            if(!cat.prices && cat.prices.length == 0) return;
+            cat.prices.forEach(price => {
+                if(price.availability > 0) {
+                    isAvailable = true;
+                    return;
+                }
+            })
+        })
+        return isAvailable;
     }
 }
 

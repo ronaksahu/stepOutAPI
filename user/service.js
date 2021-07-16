@@ -13,15 +13,13 @@ const util = require("../utility/utils");
 const WhishList = require("../model/whishList");
 const NotificationPermission = require('../model/notification')
 const sendNotification = require('../utility/notification')
+const TimeSlot = require('../model/timeSlot')
 
 const userService = {
   getService: async function (req) {
     try {
       const user = req.user;
       const serviceId = req.query.serviceId;
-
-      const userExist = await User.exists({ email: user.email });
-      if (!userExist) return "User does not exist";
 
       let page = parseInt(req.query.page);
       const perPageCount = 10;
@@ -177,9 +175,6 @@ const userService = {
 
       const user = req.user;
 
-      const userExist = await User.exists({ email: user.email });
-      if (!userExist) return "User does not exist";
-
       const service = await ServiceModel.findOne({ _id: serviceId }).lean();
       if (!service) return "Service does not exist";
       var price = 0;
@@ -268,9 +263,6 @@ const userService = {
     try {
       const user = req.user;
 
-      const userExist = await User.exists({ email: user.email });
-      if (!userExist) return "User does not exist";
-
       const updatedCart = await Cart.find({ userId: user.id })
         .populate({
           path: "serviceId",
@@ -290,9 +282,6 @@ const userService = {
   updateProfile: async function (req) {
     try {
       const user = req.user;
-      console.log(req.params);
-      const userExist = await User.exists({ email: user.email });
-      if (!userExist) return "User does not exist";
 
       var { firstName, lastName, DOB, contactNo } = req.body;
 
@@ -344,9 +333,6 @@ const userService = {
   getProfile: async function (req) {
     try {
       const user = req.user;
-
-      const userExist = await User.exists({ email: user.email });
-      if (!userExist) return "User does not exist";
 
       var profile = await Profile.findOne({ userId: user.id })
         .select({ _id: 0 })
@@ -447,9 +433,6 @@ const userService = {
       const { serviceId, rating, review } = req.body;
       const user = req.user;
 
-      const userExist = await User.exists({ email: user.email });
-      if (!userExist) return "User does not exist";
-
       const userVerified = await Order.exists({
         userId: user.id,
         serviceId: serviceId,
@@ -476,9 +459,6 @@ const userService = {
     try {
       const user = req.user;
       const serviceId = req.query.serviceId;
-
-      const userExist = await User.exists({ email: user.email });
-      if (!userExist) return "User does not exist";
 
       const match = serviceId
         ? { serviceId: ObjectId(serviceId) }
@@ -542,9 +522,6 @@ const userService = {
       const user = req.user;
       const serviceId = req.body.serviceId;
 
-      const userExist = await User.exists({ email: user.email });
-      if (!userExist) return "User does not exist";
-
       const serviceData = await ServiceModel.exists({
         _id: serviceId,
         status: "Active",
@@ -571,9 +548,6 @@ const userService = {
     try {
       const user = req.user;
 
-      const userExist = await User.exists({ email: user.email });
-      if (!userExist) return "User does not exist";
-
       var userWhishList = await WhishList.find({ userId: user.id }).populate({
         path: "serviceId",
         select: "title name description image",
@@ -587,9 +561,6 @@ const userService = {
   setDeviceId: async function (req) {
     try {
       const user = req.user;
-
-      const userExist = await User.exists({ email: user.email });
-      if (!userExist) return "User does not exist";
 
       const deviceToken = req.body.token;
       if(!deviceToken) return 'token needed'
@@ -611,9 +582,6 @@ const userService = {
   updateNotificationPermission: async function(req) {
     try {
       const user = req.user;
-
-      const userExist = await User.exists({ email: user.email });
-      if (!userExist) return "User does not exist";
 
       var notObj = req.body;
 
@@ -705,6 +673,58 @@ const userService = {
     } catch(error) {
       console.log(error)
       return; 
+    }
+  },
+  getSlotByDate: async function(req) {
+    try {
+
+      const { serviceId, categoryId, priceId, date } = req.body;
+
+      var startDate = {
+        day: date.day || 1,
+        month: date.month - 1|| 0,
+        year: date.year
+      }
+
+      var endDate = {
+        day: date.day || 31,
+        month: date.month - 1 || 11,
+        year: date.year
+      }
+      var start = new Date(Date.UTC(startDate.year, startDate.month, startDate.day))
+      var end = new Date(Date.UTC(endDate.year, endDate.month, endDate.day))
+      
+      const slotDataAgg = TimeSlot.aggregate([
+        { 
+            "$match": { 
+                "priceId": priceId,
+                "timeSlots.date": { "$gt": start, "$lt": end }
+            } 
+        },
+        {
+            "$project": {
+                "name": 1,
+                "values": {
+                    "$filter": {
+                        "input": "$timeSlots",
+                        "as": "timeSlot",
+                        "cond": { 
+                            "$and": [
+                                { "$gt": [ "$$timeSlot.date", start ] },
+                                { "$lt": [ "$$timeSlot.date", end ] }
+                            ]
+                        }
+                    }
+                }
+            }
+        }
+    ])
+    
+
+      return slotDataAgg;
+    } catch (error) {
+      console.log(error)
+      return;
     }
   }
 };

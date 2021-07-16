@@ -314,7 +314,7 @@ var vendorServices = {
                 console.log(timeSlot.date)
             })
 
-            var query = { priceId: priceId, $or: dateObj },
+            var query = { priceId: priceId },
             update = { timeSlots: timeSlots },
             options = { upsert: true, new: true, setDefaultsOnInsert: true };
             

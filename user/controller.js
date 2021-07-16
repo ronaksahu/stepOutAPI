@@ -136,6 +136,16 @@ const userController = {
             res.sendStatus(500)
         }
         
+    },
+    getSlotByDate: async function(req, res) {
+        try {
+            var result = await userService.getSlotByDate(req);
+            res.status(200).json(result)
+        } catch (error) {
+            console.log(error)
+            res.sendStatus(500)
+        }
+        
     }
 }
 

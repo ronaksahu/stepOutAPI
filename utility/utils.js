@@ -3,6 +3,7 @@ const config = require('../config.json')
 const otpGenerator = require("otp-generator");
 const crypto       = require("crypto");
 const Vendor = require('../model/vendor');
+const User = require('../model/user');
 const moment= require('moment') 
 
 const utils = {
@@ -37,6 +38,12 @@ const utils = {
         const vendor = req.user
         const vendorExist = await Vendor.exists({email: vendor.email});
         if(!vendorExist) res.sendStatus(403)
+        next();
+    },
+    validateUser: async function(req, res, next) {
+        const user = req.user
+        const userExist = await User.exists({email: user.email});
+        if(!userExist) res.sendStatus(403)
         next();
     },
     generateAccessToken: function(user) {

@@ -1,6 +1,7 @@
 const express = require('express')
 const routes = express.Router()
 var multer = require('multer');
+const util = require('../utility/utils');
 
 const userController = require('../user/controller')
 
@@ -15,7 +16,9 @@ var storage = multer.diskStorage({
 
 var upload = multer({storage: storage});
 
+routes.use(util.validateUser)
 routes.post('/getServices', userController.getServices)
+routes.post('/getSlotByDate', userController.getSlotByDate)
 routes.post('/addToCart', userController.addToCart)
 routes.get('/getCart', userController.getCart)
 routes.post('/updateProfile', upload.single('profileImage') , userController.updateProfile)

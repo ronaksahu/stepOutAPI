@@ -14,7 +14,7 @@ routes.post('/addBulkAvailabilityAndSlot', vendorController.addBulkAvailabilityA
 routes.post('/updateServices', vendorController.updateService);
 routes.get('/getServices', vendorController.getService);
 routes.get('/getReviews', vendorController.getReviews);
-routes.get('/orderList', vendorController.getOrder);
+routes.get('/orders', vendorController.getOrder);
 routes.post('/updateOrderStatus', vendorController.updateOrderStatus);
 routes.get('/getServiceMapping', vendorController.getServiceMapping)
 

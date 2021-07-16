@@ -171,13 +171,69 @@ var vendorServices = {
     getOrders: async function(req) {
         try {
             const vendor = req.user;
-
-            const orders = await Order.find({}).populate({
+            const orderId = req.query.orderId;            
+            var match = orderId ? { _id: ObjectId(orderId) } : {}
+            
+            
+            const orderData = await Order.aggregate([
+                { $match: match },
+                {
+                  $lookup: {
+                    from: "profiles",
+                    localField: "userId",
+                    foreignField: "userId",
+                    as: "userDetail",
+                  },
+                },
+                {
+                  $unwind: {
+                    path: "$userDetail",
+                    preserveNullAndEmptyArrays: true,
+                  },
+                },
+                {
+                  $lookup: {
+                    from: "services",
+                    localField: "serviceId",
+                    foreignField: "_id",
+                    as: "service",
+                  },
+                },
+                {
+                  $unwind: {
+                    path: "$service",
+                    preserveNullAndEmptyArrays: true,
+                  },
+                },
+                { $match:{ "service.vendorId": ObjectId(vendor.id) } },
+                {
+                  $project: {
+                    _id: 1,
+                    timeSlot: 1,
+                    quantity: 1,
+                    transactionStatus: 1,
+                    orderStatus: 1,
+                    orderId: 1,
+                    transactionId: 1,
+                    totalPrice: 1,
+                    price: 1,
+                    "userDetail.firstName": 1,
+                    "userDetail.lastName": 1,
+                    "service._id": 1,
+                    "service.title": 1,
+                    "service.name": 1,
+                    "service.description": 1,
+                    "service.image": 1,
+                    createdAt: 1,
+                  },
+                },
+              ]);
+            /*const orders = await Order.find({}).populate({
                 path: "serviceId",
                 select: "vendorId title name description image",
                 match: {vendorId: {$eq: vendor.id}}
-            })
-            return commonUtil.vendorOrderFormat(orders);
+            }).lean()*/
+            return commonUtil.vendorOrderFormat(orderData);
         } catch(error) {
             console.log(error)
             return;

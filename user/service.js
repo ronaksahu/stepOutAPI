@@ -168,37 +168,56 @@ const userService = {
   },
   addToCart: async function (req) {
     try {
-      const { serviceId, categoryType, priceType, quantity, slot } = req.body;
-
-      var date = slot.date.split("/");
-      slot.date = new Date(date[2], date[1] - 1, date[0]);
+      const { serviceId, categoryId, priceId, quantity, slot } = req.body;
 
       const user = req.user;
 
       const service = await ServiceModel.findOne({ _id: serviceId }).lean();
       if (!service) return "Service does not exist";
       var price = 0;
-      service.prices.forEach((cat) => {
-        if (cat.category == categoryType) {
-          cat.prices.forEach((prices) => {
-            if (prices.title == priceType) {
-              price = prices.amount;
+      var serviceAvailable = false;
+      var categoryType = null;
+      var priceType = null;
+    
+      service.prices.forEach(cat => {
+        if(cat._id == categoryId) {
+          categoryType = cat.category;
+          cat.prices.forEach(priceEle => {
+            if(priceEle.availability > 0){
+              priceType = priceEle.title;
+              serviceAvailable = true;
+              price = priceEle.amount
             }
-          });
+          })
         }
-      });
+      })
+      if(!serviceAvailable) return 'Service Not Available'
       var slotAvailable = false;
-      service.timeSlots.forEach((timeSlot) => {
-        if (Number(timeSlot.date) == Number(slot.date)) {
-          timeSlot.timeSlots.forEach((time) => {
-            if (time.from == slot.from && time.to == slot.to) {
+      
+      date = slot.date.split('/')
+      var startDate = {
+        day: date[0],
+        month: date[1] - 1,
+        year: date[2]
+      }
+     
+      var start = new Date(Date.UTC(startDate.year, startDate.month, startDate.day))
+      slot.date = start
+
+      var slotList = await commonUtil.getSlotByDate(start, start, priceId)
+      if(slotList.length == 0 || slotList[0].values.length == 0) return 'Slot not available';
+      slotList = slotList[0].values
+      slotList.forEach(value => {
+        if(value.date.getTime() == start.getTime()) {
+          if(value.slots.length == 0) return;
+          value.slots.forEach(slotTime => {
+            if(slotTime.from == slot.from && slotTime.to == slot.to) {
               slotAvailable = true;
               return;
             }
-          });
+          })
         }
-        if (slotAvailable) return;
-      });
+      })
 
       if (!slotAvailable)
         return "Slot Not Available please select different slot";
@@ -384,10 +403,10 @@ const userService = {
         })
         .select({ userId: 0 })
         .lean();
-
+        
       const cartItems = commonUtil.formatCart(updatedCart);
       var orders = [];
-      cartItems.cartList.forEach((items) => {
+      cartItems.serviceList.forEach((items) => {
         var order = {};
         order.userId = user.id;
         order.serviceId = items.serviceId;
@@ -693,35 +712,9 @@ const userService = {
       }
       var start = new Date(Date.UTC(startDate.year, startDate.month, startDate.day))
       var end = new Date(Date.UTC(endDate.year, endDate.month, endDate.day))
-      
-      const slotDataAgg = TimeSlot.aggregate([
-        { 
-            "$match": { 
-                "priceId": priceId,
-                "timeSlots.date": { "$gt": start, "$lt": end }
-            } 
-        },
-        {
-            "$project": {
-                "name": 1,
-                "values": {
-                    "$filter": {
-                        "input": "$timeSlots",
-                        "as": "timeSlot",
-                        "cond": { 
-                            "$and": [
-                                { "$gt": [ "$$timeSlot.date", start ] },
-                                { "$lt": [ "$$timeSlot.date", end ] }
-                            ]
-                        }
-                    }
-                }
-            }
-        }
-    ])
-    
 
-      return slotDataAgg;
+      return await commonUtil.getSlotByDate(start, end, priceId)
+    
     } catch (error) {
       console.log(error)
       return;

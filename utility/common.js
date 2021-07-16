@@ -1,6 +1,7 @@
 const request = require('../utility/request')
 const config = require('../config')
 const utils = require('./utils')
+const TimeSlot = require('../model/timeSlot')
 
 var commonUtil = {
     formatCart: function(cartList) {
@@ -8,7 +9,7 @@ var commonUtil = {
         var formatCartList = []
         var totalAmount = 0
         var cartItemCount = 0
-        cartObj.cartList = formatCartList
+        cartObj.serviceList = formatCartList
         
         if(cartList.length) {
             cartItemCount = cartList.length
@@ -100,7 +101,7 @@ var commonUtil = {
         var formatOrderList = []
         orderList.forEach(item => {
             var order = {}
-            order._id = item._id;
+            order.orderId = item._id;
             order.timeSlot = item.timeSlot;
             order.quantity = item.quantity;
             order.price = item.price;
@@ -108,11 +109,12 @@ var commonUtil = {
             order.transactionStatus = item.transactionStatus;
             order.createdAt = item.createdAt;
             order.updatedAt = item.updatedAt;
-            order.serviceId = item.serviceId._id;
-            order.title = item.serviceId.title;
-            order.name = item.serviceId.name;
-            order.description = item.serviceId.description;
-            order.image = item.serviceId.image;
+            order.serviceId = item.service._id;
+            order.title = item.service.title;
+            order.name = item.service.name;
+            order.description = item.service.description;
+            order.image = item.service.image;
+            order.userDetail = item.userDetail;
             formatOrderList.push(order)
         })
         return formatOrderList
@@ -302,6 +304,33 @@ var commonUtil = {
             })
         })
         return isAvailable;
+    },
+    getSlotByDate: async function(start, end, priceId) {
+        return await TimeSlot.aggregate([
+            { 
+                "$match": { 
+                    "priceId": priceId,
+                    "timeSlots.date": { "$gte": start, "$lte": end }
+                } 
+            },
+            {
+                "$project": {
+                    "name": 1,
+                    "values": {
+                        "$filter": {
+                            "input": "$timeSlots",
+                            "as": "timeSlot",
+                            "cond": { 
+                                "$and": [
+                                    { "$gte": [ "$$timeSlot.date", start ] },
+                                    { "$lte": [ "$$timeSlot.date", end ] }
+                                ]
+                            }
+                        }
+                    }
+                }
+            }
+        ])
     }
 }
 

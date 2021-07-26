@@ -13,17 +13,7 @@ var vendorServices = {
     addService: async function(req) {
         try {
             
-            var { title, name, description, image, activity_type, price_category, timeBased, addressDetail } = req.body;
-
-          /*  if(timeBased) {
-                timeSlots = req.body.timeSlots;
-
-                timeSlots.map(slots => {
-                    var date = slots.date.split('/')
-                    slots.date = new Date(date[2], date[1] - 1, date[0] - 1)
-                    return slots
-                })
-            }*/
+            var { title, name, description, images, activity_type, price_category, timeBased, addressDetail, amenities, contactInfo } = req.body;
 
             const vendor = req.user;
 
@@ -38,12 +28,14 @@ var vendorServices = {
                 title, 
                 name, 
                 description, 
-                image, 
+                images, 
                 activity_type, 
                 prices: priceCat, 
                 vendorId: vendor.id, 
                 timeBased, 
-                addressDetail
+                addressDetail,
+                amenities,
+                contactInfo
                }
 
            // if(timeBased) data.timeSlots = timeSlots
@@ -67,7 +59,7 @@ var vendorServices = {
     updateService: async function(req) {
         try {
             
-            var { serviceId, title, name, description, status, image, activity_type, price_category, timeBased, addressDetail } = req.body;
+            var { serviceId, title, name, description, status, images, activity_type, price_category, timeBased, addressDetail, amenities, contactInfo } = req.body;
 
             const vendor = req.user;
 
@@ -88,16 +80,18 @@ var vendorServices = {
                 title,
                 name ,
                 description ,
-                image ,
+                images ,
                 activity_type ,
                 status ,
                 timeBased ,
                 addressDetail,
-                prices: priceCat.length == 0 ? undefined : priceCat
+                amenities: amenities,
+                prices: priceCat.length == 0 ? undefined : priceCat,
+                contactInfo
             }
 
             var options = { multi: false, runValidators: true, omitUndefined: true }
-            await ServiceModel.updateOne (query, { "$set": update }, options )
+            await ServiceModel.updateOne(query, { "$set": update }, options )
             return  {status: true};
             
 

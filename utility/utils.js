@@ -167,6 +167,13 @@ const utils = {
             current.setDate(current.getDate() + 7);
         }
         return result;
+    },
+    getDeviceID: function(userList) {
+        var deviceIds = []
+        userList.forEach(user => {
+            deviceIds.push(user.userDetail.deviceToken)
+        })
+        return deviceIds;
     }
 
 }

@@ -5,7 +5,7 @@ const AddressSchema = mongoose.Schema({
     address: String,
     street: String,
     city: String
-})
+}, { _id : false })
 
 const priceSchema = mongoose.Schema({
     category: String,
@@ -13,6 +13,7 @@ const priceSchema = mongoose.Schema({
         title: String,
         amount: Number,
         availability: Number,
+        minPersonCount: Number
     }]
 })
 
@@ -32,10 +33,13 @@ const ServiceSchema = new Schema({
         trim: true,
         required: true
     },
-    image: {
-        type: String,
-        trim: true
-    }, 
+    images: [{
+        url: {
+            type: String,
+            trim: true
+        },
+        pin: Boolean
+    }, { _id : false }], 
     activity_type: [{
         type: String
     }],
@@ -52,7 +56,11 @@ const ServiceSchema = new Schema({
         required: true,
         default: 'Active',
         enum: ['Active', 'Inactive']
-    }
+    },
+    amenities: [{
+        type: String
+    }],
+    contactInfo: String
 }, {
     timestamps: { createdAt: 'createdAt', updatedAt: 'updatedAt' }
 });

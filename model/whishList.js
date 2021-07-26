@@ -7,11 +7,11 @@ const WhishListSchema = new Schema({
         ref: 'User',
         required: true
     },
-    serviceId: {
+    serviceId: [{
         type: Schema.Types.ObjectId,
         ref: 'Services',
         required: true
-    }
+    }]
 });
 
 module.exports = mongoose.model('whishList', WhishListSchema)

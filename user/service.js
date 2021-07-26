@@ -39,18 +39,22 @@ const userService = {
           serviceList: [],
         };
       }
-
-      const filters = req.body.filter;
-      const activityType = filters.activityType;
       var options = {
         status: "Active",
       };
+      const filters = req.body.filter;
       var activityArray = [];
-      if (activityType.length > 0) {
-        activityType.forEach((activity) => {
-          activityArray.push({ activity_type: activity });
-        });
-        options.$or = activityArray;
+
+      if(filters) {
+        const activityType = filters.activityType;
+
+        if (activityType.length > 0) {
+          activityType.forEach((activity) => {
+            activityArray.push({ activity_type: activity });
+          });
+          options.$or = activityArray;
+        }
+
       }
       if (serviceId) {
         options._id = serviceId;
@@ -78,10 +82,23 @@ const userService = {
       }
 
       var formatData = await commonUtil.formatGetService(serviceList, req);
+      
+      formatData.forEach(service => {
+        var minOccupancy = 999999;
+        service.prices.forEach(cat => {
+          cat.prices.forEach(price => {
+            if(price.minPersonCount < minOccupancy){
+              minOccupancy = price.minPersonCount
+            }
+          })
+        })
+        service.minPerson = minOccupancy;
+      })
 
       if (req.body.priceRange) {
         formatData = formatData.filter((service) => {
           var minPrice = util.getMinPriceService(service);
+          service.minPrice = minPrice;
           var maxPrice = util.getMaxPriceService(service);
           if (
             minPrice >= req.body.priceRange.min &&
@@ -89,6 +106,11 @@ const userService = {
           ) {
             return true;
           }
+        });
+      } else {
+        formatData.forEach((service) => {
+          var minPrice = util.getMinPriceService(service);
+          service.minPrice = minPrice;    
         });
       }
       if (req.body.distanceRange) {
@@ -104,7 +126,31 @@ const userService = {
           }
         });
       }
-      if (req.body.sort.by == "Rating") {
+      if (req.body.userLocation || req.body.sort && req.body.sort.by == "Distance") {
+        if (req.body.sort && req.body.sort.sorting == "Descending") {
+          formatData.sort((a, b) =>
+            a.distance > b.distance ? -1 : b.distance > a.distance ? 1 : 0
+          );
+        } else {
+          formatData.sort((a, b) =>
+            a.distance > b.distance ? 1 : b.distance > a.distance ? -1 : 0
+          );
+        }
+      }
+      if (!req.body.userLocation || req.body.sort && req.body.sort.by == "Title") {
+        
+        if (req.body.sort && req.body.sort.sorting == "Descending") {
+          formatData.sort((a, b) =>
+            a.title > b.title ? -1 : b.title > a.title ? 1 : 0
+          );
+        } else {
+          formatData.sort((a, b) =>
+            a.title > b.title ? 1 : b.title > a.title ? -1 : 0
+          );
+        }
+      }
+      
+      if (req.body.sort && req.body.sort.by == "Rating") {
         formatData.sort((a, b) => {
           if (req.body.sort.sorting == "Ascending") {
             return b.avgRating - a.avgRating;
@@ -114,31 +160,8 @@ const userService = {
           }
         });
       }
-      if (req.body.sort.by == "Title") {
-        if (req.body.sort.sorting == "Ascending") {
-          formatData.sort((a, b) =>
-            a.title > b.title ? 1 : b.title > a.title ? -1 : 0
-          );
-        }
-        if (req.body.sort.sorting == "Descending") {
-          formatData.sort((a, b) =>
-            a.title > b.title ? -1 : b.title > a.title ? 1 : 0
-          );
-        }
-      }
-      if (req.body.sort.by == "Distance") {
-        if (req.body.sort.sorting == "Ascending") {
-          formatData.sort((a, b) =>
-            a.distance > b.distance ? 1 : b.distance > a.distance ? -1 : 0
-          );
-        }
-        if (req.body.sort.sorting == "Descending") {
-          formatData.sort((a, b) =>
-            a.distance > b.distance ? -1 : b.distance > a.distance ? 1 : 0
-          );
-        }
-      }
-      if (req.body.sort.by == "Price") {
+      
+      if (req.body.sort && req.body.sort.by == "Price") {
         if (req.body.sort.sorting == "Ascending") {
           formatData.sort((a, b) => {
             var aMinPrice = util.getMinPriceService(a);
@@ -160,10 +183,10 @@ const userService = {
         }
       }
 
-      return formatData;
+      return commonUtil.responseDataV2('success', 200, null, formatData);
     } catch (error) {
       console.log(error);
-      return;
+      return commonUtil.responseDataV2('failure', 500);
     }
   },
   addToCart: async function (req) {
@@ -173,7 +196,7 @@ const userService = {
       const user = req.user;
 
       const service = await ServiceModel.findOne({ _id: serviceId }).lean();
-      if (!service) return "Service does not exist";
+      if (!service) return commonUtil.responseDataV2('failure', 200, "Service does not exist");
       var price = 0;
       var serviceAvailable = false;
       var categoryType = null;
@@ -191,7 +214,7 @@ const userService = {
           })
         }
       })
-      if(!serviceAvailable) return 'Service Not Available'
+      if(!serviceAvailable) return commonUtil.responseDataV2('failure', 200, 'Service Not Available');
       var slotAvailable = false;
       
       date = slot.date.split('/')
@@ -205,7 +228,7 @@ const userService = {
       slot.date = start
 
       var slotList = await commonUtil.getSlotByDate(start, start, priceId)
-      if(slotList.length == 0 || slotList[0].values.length == 0) return 'Slot not available';
+      if(slotList.length == 0 || slotList[0].values.length == 0) return commonUtil.responseDataV2('failure', 200, 'Slot not available') ;
       slotList = slotList[0].values
       slotList.forEach(value => {
         if(value.date.getTime() == start.getTime()) {
@@ -220,7 +243,7 @@ const userService = {
       })
 
       if (!slotAvailable)
-        return "Slot Not Available please select different slot";
+        return commonUtil.responseDataV2('failure', 200, "Slot Not Available please select different slot") ;
 
       const cart = await Cart.findOne({
         userId: user.id,
@@ -265,37 +288,40 @@ const userService = {
       const updatedCart = await Cart.find({ userId: user.id })
         .populate({
           path: "serviceId",
-          select: "title name description image",
+          select: "title name description images",
         })
         .select({ userId: 0 })
         .lean();
 
       const formatCart = commonUtil.formatCart(updatedCart);
 
-      return formatCart;
+      return commonUtil.responseDataV2('success', 200, null, formatCart);
     } catch (error) {
       console.log(error);
-      return;
+      return commonUtil.responseDataV2('failure', 500);
     }
   },
   getCart: async function (req) {
     try {
       const user = req.user;
+      const serviceId = req.query.serviceId;
+      var filter = { userId: user.id }
+      if(serviceId) filter.serviceId = serviceId;
 
-      const updatedCart = await Cart.find({ userId: user.id })
+      const updatedCart = await Cart.find(filter)
         .populate({
           path: "serviceId",
-          select: "title name description image",
+          select: "title name description images",
         })
         .select({ userId: 0 })
         .lean();
 
       const formatCart = commonUtil.formatCart(updatedCart);
 
-      return formatCart;
+      return commonUtil.responseDataV2('success', 200, null, formatCart);
     } catch (error) {
       console.log(error);
-      return;
+      return commonUtil.responseDataV2('failure', 500);
     }
   },
   updateProfile: async function (req) {
@@ -343,10 +369,10 @@ const userService = {
         profSave = await profile.save();
       }
 
-      return profile;
+      return commonUtil.responseDataV2('success', 200, null, profile);
     } catch (error) {
       console.log(error);
-      return;
+      return commonUtil.responseDataV2('failure', 500);
     }
   },
   getProfile: async function (req) {
@@ -367,10 +393,10 @@ const userService = {
         };
       }
       profile.emailId = user.email;
-      return profile;
+      return commonUtil.responseDataV2('success', 200, null, profile);;
     } catch (error) {
       console.log(error);
-      return;
+      return commonUtil.responseDataV2('failure', 500);
     }
   },
   getPreOrder: async function (req) {
@@ -380,17 +406,17 @@ const userService = {
       const updatedCart = await Cart.find({ userId: user.id })
         .populate({
           path: "serviceId",
-          select: "title name description image",
+          select: "title name description images",
         })
         .select({ userId: 0 })
         .lean();
 
       const formatCart = commonUtil.formatCart(updatedCart);
 
-      return formatCart;
+      return commonUtil.responseDataV2('success', 200, null, formatCart);
     } catch (error) {
       console.log(error);
-      return;
+      return commonUtil.responseDataV2('failure', 500);
     }
   },
   placeOrder: async function (req) {
@@ -399,7 +425,7 @@ const userService = {
       const updatedCart = await Cart.find({ userId: user.id })
         .populate({
           path: "serviceId",
-          select: "title name description image",
+          select: "title name description images",
         })
         .select({ userId: 0 })
         .lean();
@@ -411,7 +437,7 @@ const userService = {
         order.userId = user.id;
         order.serviceId = items.serviceId;
         order.quantity = items.quantity;
-        order.totalAmount = items.totalAmount;
+        order.totalPrice = items.totalAmount;
         order.timeSlot = items.timeSlot;
         order.price = items.amount;
         order.orderStatus = "Confirm";
@@ -423,10 +449,10 @@ const userService = {
 
       var cartEmpty = await Cart.deleteMany({ userId: user.id });
 
-      return commonUtil.formatOrder(orderList);
+      return commonUtil.responseDataV2('success', 200, null, commonUtil.formatOrder(orderList));
     } catch (error) {
       console.log(error);
-      return;
+      return commonUtil.responseDataV2('failure', 500);
     }
   },
   myOrders: async function (req) {
@@ -436,15 +462,15 @@ const userService = {
       const orderList = await Order.find({ userId: user.id })
         .populate({
           path: "serviceId",
-          select: "title name description image",
+          select: "title name description images",
         })
         .select({ userId: 0 })
         .lean();
 
-      return commonUtil.formatMyOrders(orderList);
+      return commonUtil.responseDataV2('success', 200, null, commonUtil.formatMyOrders(orderList));
     } catch (error) {
       console.log(error);
-      return;
+      return commonUtil.responseDataV2('failure', 500);
     }
   },
   postReview: async function (req) {
@@ -459,6 +485,9 @@ const userService = {
 
       if (!userVerified) return "User not ordered this Service";
 
+      const reviewExist = await Review.exists({userId: user.id, serviceId})
+      if(reviewExist) return "Already reviewed"
+
       const reviewModel = Review({
         userId: user.id,
         serviceId,
@@ -467,11 +496,11 @@ const userService = {
       });
 
       const postReview = await reviewModel.save();
-
-      return postReview;
+      if(postReview) return {status: true}
+      return commonUtil.responseDataV2('success', 200, null)
     } catch (error) {
       console.log(error);
-      return;
+      return commonUtil.responseDataV2('failure', 500);
     }
   },
   getReview: async function (req) {
@@ -524,16 +553,16 @@ const userService = {
             "service.title": 1,
             "service.name": 1,
             "service.description": 1,
-            "service.image": 1,
+            "service.images": 1,
             createdAt: 1,
           },
         },
       ]);
       // return reviews;
-      return commonUtil.reviewFormatData(reviews);
+      return commonUtil.responseDataV2('success', 200, null,commonUtil.reviewFormatData(reviews));
     } catch (error) {
       console.log(error);
-      return;
+      return commonUtil.responseDataV2('failure', 500);;
     }
   },
   addToWhishList: async function (req) {
@@ -550,17 +579,13 @@ const userService = {
       const whishList = new WhishList({ userId: user.id, serviceId });
       var whishListSave = await whishList.save();
       if (whishListSave) {
-        return {
-          status: true,
-        };
+        return commonUtil.responseDataV2('success', 200, null);
       } else {
-        return {
-          status: false,
-        };
+        return commonUtil.responseDataV2('failure', 200);
       }
     } catch (error) {
       console.log(error);
-      return;
+      return commonUtil.responseDataV2('failure', 500);;
     }
   },
   getWhishList: async function (req) {
@@ -569,12 +594,12 @@ const userService = {
 
       var userWhishList = await WhishList.find({ userId: user.id }).populate({
         path: "serviceId",
-        select: "title name description image",
-      }).select({ userId: 0 });
-      return commonUtil.formatWhishList(userWhishList);
+        select: "title name description images",
+      }).select({ userId: 0 }).lean();
+      return commonUtil.responseDataV2('success', 200, null, commonUtil.formatWhishList(userWhishList));
     } catch (error) {
       console.log(error);
-      return;
+      return commonUtil.responseDataV2('failure', 500);
     }
   },
   setDeviceId: async function (req) {
@@ -586,16 +611,13 @@ const userService = {
 
       const updateToken = await Profile.updateOne({ userId: '60ead8bbeb0bdc58401487f2' }, { deviceToken:  deviceToken}) 
       if(updateToken.nModified && updateToken.n) {
-        return {
-          status: true
-        }
+        return commonUtil.responseDataV2('success', 200);
       } else {
-        return { status: false }
+        return commonUtil.responseDataV2('failure', 200);
       }
-      
     } catch (error) {
       console.log(error);
-      return;
+      return commonUtil.responseDataV2('failure', 500);;
     }
   },
   updateNotificationPermission: async function(req) {
@@ -638,11 +660,11 @@ const userService = {
           notificationSaved = await notSaveObj.save();
         }
       }
-      return notificationSaved.mapping;
+      return commonUtil.responseDataV2('success', 200, null, notificationSaved.mapping);
       
     } catch (error) {
       console.log(error)
-      return;
+      return commonUtil.responseDataV2('failure', 500);;
     }
   },
   sendNotification: async function(req) {
@@ -691,7 +713,7 @@ const userService = {
       return true;      
     } catch(error) {
       console.log(error)
-      return; 
+      return commonUtil.responseDataV2('failure', 500);; 
     }
   },
   getSlotByDate: async function(req) {
@@ -713,11 +735,13 @@ const userService = {
       var start = new Date(Date.UTC(startDate.year, startDate.month, startDate.day))
       var end = new Date(Date.UTC(endDate.year, endDate.month, endDate.day))
 
-      return await commonUtil.getSlotByDate(start, end, priceId)
+      var slot_data = await commonUtil.getSlotByDate(start, end, priceId)
+
+      return commonUtil.responseDataV2('success', 200, null, slot_data);
     
     } catch (error) {
       console.log(error)
-      return;
+      return commonUtil.responseDataV2('failure', 500);;
     }
   }
 };

@@ -72,6 +72,7 @@ module.exports.app = function (router, port) {
     app.use(express.json({ limit: '10mb' }));
     app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
+
     app.use(constants.ROUTE_PATH, router);
 
     app.use('*', function (req, res) {

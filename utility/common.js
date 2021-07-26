@@ -26,7 +26,8 @@ var commonUtil = {
                 cartItem.title = item.serviceId.title;
                 cartItem.name = item.serviceId.name;
                 cartItem.description = item.serviceId.description;
-                cartItem.image = item.serviceId.image;
+                var pinImage = item.serviceId.images.filter(imageObj => imageObj.pin == true)
+                cartItem.image = pinImage[0].url;
                 totalAmount += item.totalAmount
                 formatCartList.push(cartItem)
             })
@@ -56,16 +57,18 @@ var commonUtil = {
         var formatMyOrderList = []
         myOrderList.forEach(order => {
             var myOrder = {}
-            myOrder._id = order._id;
+            myOrder.orderId = order._id;
             myOrder.quantity = order.quantity;
             myOrder.timeSlot = order.timeSlot;
             myOrder.price = order.price;
+            myOrder.totalPrice = order.totalPrice;
             myOrder.orderStatus = order.orderStatus;
             myOrder.serviceId = order.serviceId._id;
             myOrder.title = order.serviceId.title;
             myOrder.name = order.serviceId.name;
             myOrder.description = order.serviceId.description;
-            myOrder.image = order.serviceId.image;
+            var pinImage = order.serviceId.images.filter(imageObj => imageObj.pin == true)
+            myOrder.image = pinImage[0].url;
             myOrder.createdAt = order.createdAt;
             myOrder.updatedAt = order.updatedAt;
 
@@ -90,7 +93,8 @@ var commonUtil = {
             review.title = item.service.title;
             review.name = item.userDetail.firstName+' '+item.userDetail.lastName;
             review.description = item.service.description;
-            review.image = item.service.image;
+            var pinImage = item.service.images.filter(imageObj => imageObj.pin == true)
+            review.image = pinImage[0].url;
             review.createdAt = item.createdAt;
             reviews.push(review)
         })
@@ -113,7 +117,8 @@ var commonUtil = {
             order.title = item.service.title;
             order.name = item.service.name;
             order.description = item.service.description;
-            order.image = item.service.image;
+            var pinImage = item.service.images.filter(imageObj => imageObj.pin == true)
+            order.image = pinImage[0].url;
             order.userDetail = item.userDetail;
             formatOrderList.push(order)
         })
@@ -139,11 +144,12 @@ var commonUtil = {
     },
     responseDataV2(status, statusCode, message, data) {
         var response = {}
-        response.status = status || false
+        response.status = status || 'failure'
         response.statusCode = statusCode || 500
-        response.message = message || 'No results found'
+        if(message) {
+            response.message = message
+        }
         response.data = data || {}
-        if (!message) delete response.message
         return response;
     },
     formatUserData: function(userData) {
@@ -175,7 +181,16 @@ var commonUtil = {
             service.title = item.title
             service.name = item.name
             service.description = item.description
-            service.image = item.image
+            var pinImage = item.images.filter(imageObj => imageObj.pin == true)
+            service.pinImage = pinImage[0].url;
+            service.images = item.images.filter(imageObj => {
+                if(imageObj.pin == undefined || imageObj.pin == false) {
+                    return true
+                }
+                return false;
+            }).map(imageObj => {
+                return imageObj.url
+            })
             service.description = item.description
             var catArr = []
             if(item.prices.length == 0) return;
@@ -207,11 +222,12 @@ var commonUtil = {
             if(req.query.serviceId) {
                 service.review = review.reviews
             }
-            if(item.addressDetail) {
+            if(item.addressDetail && req.body.userLocation) {
                 serviceLatLon = await this.getLatLon(item.addressDetail, req)
                 service.distance = Number(utils.distance(req.body.userLocation, serviceLatLon)).toFixed(2);
                 service.location = serviceLatLon
             }
+            service.amenities = item.amenities
             dataList.push(service)
         }
         return dataList;
@@ -238,13 +254,14 @@ var commonUtil = {
     },
     formatWhishList: async function(whishList) {
         var formatWhishList = [];
-        whishList.forEach(item => {
+        whishList[0].serviceId.forEach(item => {
             var service = {}
-            service.serviceId = item.serviceId._id;
-            service.title = item.serviceId.title;
-            service.name = item.serviceId.name;
-            service.description = item.serviceId.description;
-            service.image = item.serviceId.image;
+            service.serviceId = item._id;
+            service.title = item.title;
+            service.name = item.name;
+            service.description = item.description;
+            var pinImage = item.images.filter(imageObj => imageObj.pin == true)
+            service.image = pinImage[0].url;
             formatWhishList.push(service)
         })
         return formatWhishList;

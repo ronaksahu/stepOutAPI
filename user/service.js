@@ -225,8 +225,12 @@ const userService = {
       }
      
       var start = new Date(Date.UTC(startDate.year, startDate.month, startDate.day))
+      var currentDate = new Date(new Date().toUTCString())
+      console.log(start, currentDate, start < currentDate)
+      if (start.getTime() < currentDate.getTime()) {
+        return commonUtil.responseDataV2('failure', 200, 'Select different date')
+      }
       slot.date = start
-
       var slotList = await commonUtil.getSlotByDate(start, start, priceId)
       if(slotList.length == 0 || slotList[0].values.length == 0) return commonUtil.responseDataV2('failure', 200, 'Slot not available') ;
       slotList = slotList[0].values
@@ -318,7 +322,11 @@ const userService = {
 
       const formatCart = commonUtil.formatCart(updatedCart);
 
-      return commonUtil.responseDataV2('success', 200, null, formatCart);
+      const cartRes = await Cart.deleteMany({ userId: user.id, _id: {
+        $in: formatCart.cartRemove
+      }})
+      console.log(cartRes)
+      return commonUtil.responseDataV2('success', 200, null, formatCart.cartObj);
     } catch (error) {
       console.log(error);
       return commonUtil.responseDataV2('failure', 500);
@@ -508,12 +516,17 @@ const userService = {
       const user = req.user;
       const serviceId = req.query.serviceId;
 
+      let page = parseInt(req.query.page) || 1;
+      const perPageCount = 10;
+
       const match = serviceId
         ? { serviceId: ObjectId(serviceId) }
         : { userId: ObjectId(user.id) };
 
       const reviews = await Review.aggregate([
         { $match: match },
+        { "$limit": perPageCount },
+        { "$skip": (page - 1) * perPageCount },
         {
           $lookup: {
             from: "profiles",
@@ -559,7 +572,7 @@ const userService = {
         },
       ]);
       // return reviews;
-      return commonUtil.responseDataV2('success', 200, null,commonUtil.reviewFormatData(reviews));
+      return commonUtil.responseDataV2('success', 200, null, commonUtil.reviewFormatData(reviews));
     } catch (error) {
       console.log(error);
       return commonUtil.responseDataV2('failure', 500);;

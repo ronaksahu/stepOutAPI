@@ -10,6 +10,8 @@ var commonUtil = {
         var totalAmount = 0
         var cartItemCount = 0
         cartObj.serviceList = formatCartList
+
+        cartRemove = []
         
         if(cartList.length) {
             cartItemCount = cartList.length
@@ -21,6 +23,11 @@ var commonUtil = {
                 cartItem.amount = item.amount;
                 cartItem.totalAmount = item.totalAmount;
                 cartItem.quantity = item.quantity;
+                var timeSlotPassed = this.isTimeSlotPassed(item.timeSlot)
+                if(!timeSlotPassed) {
+                    cartRemove.push(item._id);
+                    return;
+                }
                 cartItem.timeSlot = item.timeSlot;
                 cartItem.serviceId = item.serviceId._id;
                 cartItem.title = item.serviceId.title;
@@ -33,9 +40,21 @@ var commonUtil = {
             })
         }
         cartObj.totalAmount = totalAmount
-        cartObj.cartItemCount = cartItemCount
-        return cartObj;
+        cartObj.cartItemCount = formatCartList.length
+        return {cartObj, cartRemove};
 
+    },
+    isTimeSlotPassed: function(timeSlot) {
+        var slotDate = timeSlot.date;
+        var todayDate = new Date(new Date().toUTCString());
+        if(todayDate <= slotDate) {
+            var fromTime = timeSlot.from
+            console.log(todayDate.getHours(), todayDate.getMinutes())
+            if(todayDate < slotDate) return true;
+            if(todayDate == slotDate && (todayDate.getHours() < fromTime.split(':')[0])) return true;
+            if(todayDate.getHours() == fromTime.split(':')[0] && todayDate.getMinutes() < fromTime.split(':')[1]) return true;
+        }
+        return false;
     },
     formatOrder: function(orderList) {
         var formatOrderList = []
@@ -88,6 +107,7 @@ var commonUtil = {
             review._id = item._id;
             review.rating = item.rating ? item.rating : 0;
             totalRating += item.rating ? item.rating : 0
+            if(!item.review) return;
             review.review = item.review;
             review.serviceId = item.service._id;
             review.title = item.service.title;
@@ -147,7 +167,7 @@ var commonUtil = {
         response.status = status || 'failure'
         response.statusCode = statusCode || 500
         if(message) {
-            response.message = message
+            response.error = message
         }
         response.data = data || {}
         return response;
@@ -180,6 +200,7 @@ var commonUtil = {
             service.activity_type = item.activity_type
             service.title = item.title
             service.name = item.name
+            service.contactInfo = item.contactInfo
             service.description = item.description
             var pinImage = item.images.filter(imageObj => imageObj.pin == true)
             service.pinImage = pinImage[0].url;
@@ -222,10 +243,13 @@ var commonUtil = {
             if(req.query.serviceId) {
                 service.review = review.reviews
             }
-            if(item.addressDetail && req.body.userLocation) {
+            var serviceLatLon = null;
+            if(item.addressDetail) {
                 serviceLatLon = await this.getLatLon(item.addressDetail, req)
-                service.distance = Number(utils.distance(req.body.userLocation, serviceLatLon)).toFixed(2);
                 service.location = serviceLatLon
+            }
+            if(item.addressDetail && req.body.userLocation) {
+                service.distance = Number(utils.distance(req.body.userLocation, serviceLatLon)).toFixed(2);
             }
             service.amenities = item.amenities
             dataList.push(service)

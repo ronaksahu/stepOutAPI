@@ -19,7 +19,7 @@ async function sendNotification(registrationToken, message){
             }
           };
         const notificationSent = await admin.messaging().sendToDevice(registrationToken, payload, notification_options)
-        console.log(notificationSent)
+        console.log(JSON.stringify(notificationSent))
     } catch(error) {
         console.log(JSON.stringify(error))
     }

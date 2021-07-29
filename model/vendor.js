@@ -20,10 +20,6 @@ const UserSchema = new Schema({
         lowercase: true,
         trim: true
     },
-    contactNo: {
-        type: Number,
-        unique: true        
-    },
     birthDate: {
         type: String,
     },
@@ -31,9 +27,6 @@ const UserSchema = new Schema({
         type: String,
         minlength: 7,
         required: true
-    }, 
-    address: {
-        type: String,
     }
 }, {
     timestamps: { createdAt: 'createdAt', updatedAt: 'updatedAt' }

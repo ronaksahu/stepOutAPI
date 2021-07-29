@@ -29,6 +29,7 @@ routes.get('/myOrders', userController.myOrders)
 routes.post('/postReview', userController.postReview)
 routes.get('/getReview', userController.getReview)
 routes.post('/addToWhishList', userController.addToWhishList);
+routes.post('/removeWhishListItem', userController.removeWhishList);
 routes.get('/getWhishList', userController.getWhishList)
 routes.post('/setDeviceId', userController.setDeviceId)
 routes.post('/updateNotificationPermission', userController.updateNotificationPermission)

@@ -276,7 +276,7 @@ var commonUtil = {
         destLatLon = JSON.parse(destLatLon)
         return destLatLon.results[0].geometry.location;
     },
-    formatWhishList: async function(whishList) {
+    formatWhishList: function(whishList) {
         var formatWhishList = [];
         whishList[0].serviceId.forEach(item => {
             var service = {}
@@ -372,6 +372,27 @@ var commonUtil = {
                 }
             }
         ])
+    },
+    formatWhishListNotification: function(whishList) {
+        var whishListArr = []
+        var registerationTokens = []
+        whishList.forEach(item => {
+            var whishListObj = {}
+            whishListObj.firstName = item.userDetail.firstName
+            whishListObj.lastName = item.userDetail.lastName
+            if(!item.userDetail.deviceToken) return ;
+            whishListObj.deviceToken = item.userDetail.deviceToken
+            registerationTokens.push(item.userDetail.deviceToken)
+            if(!item.whishList) return;
+            if(!(item.whishList.serviceId && item.whishList.serviceId.length > 0)) return;
+            whishListObj.serviceIds = item.whishList.serviceId
+            whishListObj.userId = item.whishList.userId
+            whishListArr.push(whishListObj)
+        })
+        return {whishListArr, registerationTokens};
+    },
+    sendWhishListNoti : function() {
+        request.post('http://localhost:8800/api/notification/sendWhishListNotification', {}, null, "json")
     }
 }
 

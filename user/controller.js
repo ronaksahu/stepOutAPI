@@ -100,6 +100,15 @@ const userController = {
             res.sendStatus(500)
         }
     },
+    removeWhishList: async function(req, res) {
+        try {
+            var result = await userService.removeWhishList(req);
+            res.status(200).json(result)
+        } catch(error) {
+            console.log(error)
+            res.sendStatus(500)
+        }
+    },
     getWhishList: async function(req, res) {
         try {
             var result = await userService.getWhishList(req);

@@ -587,18 +587,39 @@ const userService = {
         _id: serviceId,
         status: "Active",
       });
-      if (!serviceData) return "Service is not available";
+      if (!serviceData) return commonUtil.responseDataV2('failure', 200, "Service is not available");
 
-      const whishList = new WhishList({ userId: user.id, serviceId });
-      var whishListSave = await whishList.save();
-      if (whishListSave) {
+      const serviceExistWhishList = await WhishList.exists({userId: user.id, serviceId: {$in: [serviceId]}})
+
+      if(serviceExistWhishList)  return commonUtil.responseDataV2('failure', 200, "Already Added in WhishList");
+
+      const whishList = await WhishList.updateOne({userId: user.id} , { $push: {
+        'serviceId': {$each : [serviceId]}
+    }}, { upsert: true})
+     // var whishListSave = await whishList.save();
+      if (whishList) {
         return commonUtil.responseDataV2('success', 200, null);
       } else {
         return commonUtil.responseDataV2('failure', 200);
       }
     } catch (error) {
       console.log(error);
-      return commonUtil.responseDataV2('failure', 500);;
+      return commonUtil.responseDataV2('failure', 500);
+    }
+  },
+  removeWhishList: async function(req) {
+    try {
+      const user = req.user;
+      const serviceId = req.body.service;
+      var whishListUpdate = await WhishList.updateOne({ userId: user.id }, { $pullAll: { serviceId : serviceId } })
+      if(whishListUpdate.n && whishListUpdate.nModified) {
+        return commonUtil.responseDataV2('success', 200, null, {status: true});
+      } else {
+        return commonUtil.responseDataV2('success', 200, null, {status: false});
+      }
+    } catch (error) {
+      console.log(error);
+      return commonUtil.responseDataV2('failure', 500);
     }
   },
   getWhishList: async function (req) {
@@ -609,7 +630,9 @@ const userService = {
         path: "serviceId",
         select: "title name description images",
       }).select({ userId: 0 }).lean();
-      return commonUtil.responseDataV2('success', 200, null, commonUtil.formatWhishList(userWhishList));
+
+      var formatWhishListData = commonUtil.formatWhishList(userWhishList);
+      return commonUtil.responseDataV2('success', 200, null, formatWhishListData);
     } catch (error) {
       console.log(error);
       return commonUtil.responseDataV2('failure', 500);
@@ -622,7 +645,7 @@ const userService = {
       const deviceToken = req.body.token;
       if(!deviceToken) return 'token needed'
 
-      const updateToken = await Profile.updateOne({ userId: '60ead8bbeb0bdc58401487f2' }, { deviceToken:  deviceToken}) 
+      const updateToken = await Profile.updateOne({ userId: user.id }, { deviceToken:  deviceToken}) 
       if(updateToken.nModified && updateToken.n) {
         return commonUtil.responseDataV2('success', 200);
       } else {
